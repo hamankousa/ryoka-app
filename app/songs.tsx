@@ -3,6 +3,9 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "
 import { Link } from "expo-router";
 
 import { SongManifestItem } from "../src/domain/manifest";
+import { downloadService } from "../src/features/download/downloadService";
+import { getSongDownloadState } from "../src/features/download/downloadState";
+import { OfflineEntry } from "../src/features/offline/offlineRepo";
 import { createPlayerStore } from "../src/features/player/playerStore";
 import { loadSongs } from "../src/features/songs/loadSongs";
 import { createManifestRepository } from "../src/infra/manifestRepository";
@@ -17,6 +20,8 @@ export default function SongsPlaceholderScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState<string | undefined>(undefined);
+  const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
+  const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
 
   const hasSongs = useMemo(() => songs.length > 0, [songs]);
 
@@ -34,6 +39,11 @@ export default function SongsPlaceholderScreen() {
         setSongs(result.songs);
         playerStore.setQueue(result.songs, 0);
         setCurrentSongTitle(playerStore.getState().currentSong?.title);
+        const offline = await downloadService.listOfflineEntries();
+        if (isMounted) {
+          const map = Object.fromEntries(offline.map((entry) => [entry.songId, entry]));
+          setOfflineEntries(map);
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -50,6 +60,16 @@ export default function SongsPlaceholderScreen() {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    return downloadService.subscribe((snapshot) => {
+      setDownloadSnapshot(snapshot);
+      void downloadService.listOfflineEntries().then((offline) => {
+        const map = Object.fromEntries(offline.map((entry) => [entry.songId, entry]));
+        setOfflineEntries(map);
+      });
+    });
   }, []);
 
   return (
@@ -91,6 +111,42 @@ export default function SongsPlaceholderScreen() {
               <Link href={`/score/${item.id}`} style={styles.scoreLink}>
                 楽譜
               </Link>
+
+              {(() => {
+                const activeJob = downloadService.getJobBySongId(downloadSnapshot, item.id);
+                const state = getSongDownloadState(item, offlineEntries[item.id] ?? null, activeJob);
+                return (
+                  <View style={styles.downloadArea}>
+                    <Text style={styles.downloadBadge}>DL状態: {state.badge}</Text>
+                    {state.canDownload && (
+                      <Pressable
+                        style={styles.downloadButton}
+                        onPress={async () => {
+                          await downloadService.downloadSong(item);
+                        }}
+                      >
+                        <Text style={styles.downloadButtonText}>
+                          {state.badge === "更新あり" ? "再DL" : "DL"}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {state.canDelete && (
+                      <Pressable
+                        style={styles.deleteButton}
+                        onPress={async () => {
+                          await downloadService.deleteSong(item.id);
+                          const offline = await downloadService.listOfflineEntries();
+                          setOfflineEntries(
+                            Object.fromEntries(offline.map((entry) => [entry.songId, entry]))
+                          );
+                        }}
+                      >
+                        <Text style={styles.deleteButtonText}>削除</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })()}
             </View>
           )}
         />
@@ -142,6 +198,35 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
     paddingBottom: 8,
+  },
+  downloadArea: {
+    gap: 6,
+  },
+  downloadBadge: {
+    color: "#334155",
+    fontSize: 12,
+  },
+  downloadButton: {
+    backgroundColor: "#DCFCE7",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    width: 64,
+  },
+  downloadButtonText: {
+    color: "#166534",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  deleteButton: {
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  deleteButtonText: {
+    color: "#B91C1C",
+    fontWeight: "600",
   },
   row: {
     backgroundColor: "#F8FAFC",
