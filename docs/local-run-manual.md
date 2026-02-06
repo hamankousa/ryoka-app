@@ -14,6 +14,7 @@ npx serve . -l 8787 --cors
 
 - `http://localhost:8787/ryoka-content/manifest.json`
 - `http://localhost:8787/ryoka-content/audio/vocal/m45.mp3`
+- `http://localhost:8787/ryoka-content/audio/piano/m45.midi`
 - `http://localhost:8787/ryoka-content/lyrics/m45.html`
 
 ## ターミナル2: アプリ起動（Web）

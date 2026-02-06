@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-- 寮歌の `音源(mp3)`, `歌詞(html)`, `楽譜(pdf)` を閲覧/再生できる
+- 寮歌の `音源(vocal: mp3 / piano: midi)`, `歌詞(html)`, `楽譜(pdf)` を閲覧/再生できる
 - コンテンツ更新は `manifest.json` 経由でアプリ更新なし反映
 - iOS/Android は曲単位オフライン保存、Web はストリーミング中心
 
@@ -12,6 +12,7 @@
 - `TypeScript`
 - `expo-router`
 - 音声: `expo-av`
+- WebのMIDI再生: `WebAudio + midi-file`（専用実装）
 - 歌詞表示: `react-native-webview`（iOS/Android）
 - 保存: `expo-file-system` + `@react-native-async-storage/async-storage`
 - テスト: `jest-expo` + `@testing-library/react-native`
@@ -89,8 +90,10 @@ docs/                # 手順書
 ## 10. 音源ソース方針
 
 - `audio` は `vocal` と `piano` に分離して管理する
-- `manifest` の `audio` は `vocalMp3Url` と `pianoMp3Url` を持つ
+- `manifest` の `audio` は `vocalMp3Url`（mp3）と `pianoMp3Url`（midi）を持つ
 - `defaultSource` は初期再生の選択値として使う（現状は `vocal`）
+- Webで `piano` が `.mid/.midi` の場合は `expo-av` ではなく専用MIDIエンジンで再生する
+- MIDI再生中はミニプレイヤーで `seek` / `tempo(0.5x-3.0x)` / `timbre` / `loop` を操作できる
 
 ## 11. 更新検知方針
 

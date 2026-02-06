@@ -39,7 +39,7 @@ function buildEntry(songId: string, root: string): OfflineEntry {
     downloadedAt: "2026-02-06T01:00:00Z",
     files: {
       vocalAudioPath: `${root}/audio/vocal/${songId}.mp3`,
-      pianoAudioPath: `${root}/audio/piano/${songId}.mp3`,
+      pianoAudioPath: `${root}/audio/piano/${songId}.midi`,
       lyricsPath: `${root}/lyrics/${songId}.html`,
       scorePath: `${root}/score/${songId}.pdf`,
     },
@@ -56,10 +56,10 @@ describe("offlineRepo", () => {
       fileSystem,
     });
 
-    const paths = await repo.prepareSongPaths("m45");
+    const paths = await repo.prepareSongPaths("m45", { pianoExt: ".midi" });
 
     expect(paths.vocalAudioPath).toBe("file:///doc/offline/audio/vocal/m45.mp3");
-    expect(paths.pianoAudioPath).toBe("file:///doc/offline/audio/piano/m45.mp3");
+    expect(paths.pianoAudioPath).toBe("file:///doc/offline/audio/piano/m45.midi");
     expect(paths.lyricsPath).toBe("file:///doc/offline/lyrics/m45.html");
     expect(paths.scorePath).toBe("file:///doc/offline/score/m45.pdf");
     expect(fileSystem.createdDirs).toEqual([

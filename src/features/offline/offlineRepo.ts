@@ -8,6 +8,10 @@ export type OfflineSongPaths = {
   lyricsPath: string;
   scorePath: string;
 };
+type AudioExtensions = {
+  vocalExt?: string;
+  pianoExt?: string;
+};
 
 export type OfflineEntry = {
   songId: string;
@@ -93,6 +97,13 @@ function normalizeDir(path: string) {
   return path.endsWith("/") ? path.slice(0, -1) : path;
 }
 
+function normalizeExtension(value: string | undefined, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+  return value.startsWith(".") ? value : `.${value}`;
+}
+
 function createPathBuilder(rootDir: string) {
   const root = normalizeDir(rootDir);
   const audio = `${root}/audio`;
@@ -106,9 +117,9 @@ function createPathBuilder(rootDir: string) {
       lyrics: `${root}/lyrics`,
       score: `${root}/score`,
     },
-    songPaths: (songId: string): OfflineSongPaths => ({
-      vocalAudioPath: `${audio}/vocal/${songId}.mp3`,
-      pianoAudioPath: `${audio}/piano/${songId}.mp3`,
+    songPaths: (songId: string, extensions: AudioExtensions = {}): OfflineSongPaths => ({
+      vocalAudioPath: `${audio}/vocal/${songId}${normalizeExtension(extensions.vocalExt, ".mp3")}`,
+      pianoAudioPath: `${audio}/piano/${songId}${normalizeExtension(extensions.pianoExt, ".mp3")}`,
       lyricsPath: `${root}/lyrics/${songId}.html`,
       scorePath: `${root}/score/${songId}.pdf`,
     }),
@@ -145,14 +156,14 @@ export function createOfflineRepo({
 
   return {
     rootDir: pathBuilder.root,
-    prepareSongPaths: async (songId: string) => {
+    prepareSongPaths: async (songId: string, extensions: AudioExtensions = {}) => {
       await fileSystem.ensureDir(pathBuilder.dirs.root);
       await fileSystem.ensureDir(pathBuilder.dirs.audio);
       await fileSystem.ensureDir(pathBuilder.dirs.vocal);
       await fileSystem.ensureDir(pathBuilder.dirs.piano);
       await fileSystem.ensureDir(pathBuilder.dirs.lyrics);
       await fileSystem.ensureDir(pathBuilder.dirs.score);
-      return pathBuilder.songPaths(songId);
+      return pathBuilder.songPaths(songId, extensions);
     },
     buildEntryFromSong: async (song: SongManifestItem): Promise<OfflineEntry> => ({
       songId: song.id,

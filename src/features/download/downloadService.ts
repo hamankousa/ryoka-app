@@ -71,6 +71,25 @@ type TrackedDownload = {
   files: OfflineSongPaths;
 };
 
+function getFileExtension(urlLike: string, fallback: string) {
+  try {
+    const parsed = new URL(urlLike);
+    const pathname = parsed.pathname;
+    const index = pathname.lastIndexOf(".");
+    if (index < 0 || index === pathname.length - 1) {
+      return fallback;
+    }
+    return pathname.slice(index);
+  } catch {
+    const pathOnly = urlLike.split("?")[0].split("#")[0];
+    const index = pathOnly.lastIndexOf(".");
+    if (index < 0 || index === pathOnly.length - 1) {
+      return fallback;
+    }
+    return pathOnly.slice(index);
+  }
+}
+
 export function createDownloadService() {
   const offlineRepo = createOfflineRepo({});
   const manager = createDownloadManager({
@@ -122,7 +141,10 @@ export function createDownloadService() {
     getOfflineEntry: (songId: string) => offlineRepo.getEntry(songId),
     deleteSong: (songId: string) => offlineRepo.deleteEntry(songId, { deleteFiles: true }),
     downloadSong: async (song: SongManifestItem) => {
-      const files = await offlineRepo.prepareSongPaths(song.id);
+      const files = await offlineRepo.prepareSongPaths(song.id, {
+        vocalExt: getFileExtension(song.audio.vocalMp3Url, ".mp3"),
+        pianoExt: getFileExtension(song.audio.pianoMp3Url, ".mp3"),
+      });
       const jobId = manager.enqueue({
         songId: song.id,
         files: [
