@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
 
 import { SongManifestItem } from "../src/domain/manifest";
@@ -112,7 +112,8 @@ export default function SongsPlaceholderScreen() {
                 楽譜
               </Link>
 
-              {(() => {
+              {Platform.OS !== "web" &&
+                (() => {
                 const activeJob = downloadService.getJobBySongId(downloadSnapshot, item.id);
                 const state = getSongDownloadState(item, offlineEntries[item.id] ?? null, activeJob);
                 return (
@@ -146,7 +147,7 @@ export default function SongsPlaceholderScreen() {
                     )}
                   </View>
                 );
-              })()}
+                })()}
             </View>
           )}
         />
