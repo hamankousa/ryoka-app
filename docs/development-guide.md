@@ -80,9 +80,10 @@ docs/                # 手順書
 
 ## 9. サンプルデータ運用
 
-- 開発初期の配信元は `sample-content/` を使う
-- ローカル配信は `npx serve sample-content -l 8787`
-- `BASE_URL` は `http://<your-ip>:8787/` を設定する
+- 曲一覧（manifest）は `../ryoka-content/manifest.json` を使う
+- 実リソースは `sample-content/` を使う
+- ローカル配信は親フォルダで `npx serve . -l 8787`
+- `BASE_URL` は `http://<your-ip>:8787/ryoka-content/` を設定する
 - 実機確認時はPCと端末を同一ネットワークに接続する
 
 ## 10. 音源ソース方針
@@ -90,3 +91,7 @@ docs/                # 手順書
 - `audio` は `vocal` と `piano` に分離して管理する
 - `manifest` の `audio` は `vocalMp3Url` と `pianoMp3Url` を持つ
 - `defaultSource` は初期再生の選択値として使う（現状は `vocal`）
+
+## 11. 手動起動マニュアル
+
+- 別ターミナルでの起動手順は `docs/local-run-manual.md` を参照する

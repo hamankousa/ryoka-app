@@ -1,22 +1,18 @@
 # sample-content
 
-開発初期はこのフォルダを配信元データとして使う。
+開発初期の実リソース（音源/歌詞/楽譜）を置くフォルダ。
 
 ## 構成
 
-- `manifest.json`
 - `audio/vocal/<songId>.mp3`
 - `audio/piano/<songId>.mp3`
 - `lyrics/<songId>.html`
 - `score/<songId>.pdf`
 
-## 使い方（ローカル配信）
+## 使い方（manifestとの関係）
 
-```bash
-npx serve sample-content -l 8787
-```
-
-`BASE_URL` は `http://<your-ip>:8787/` を利用する。
+- 曲一覧（manifest）は `../ryoka-content/manifest.json` で管理する
+- このフォルダのファイルは manifest から相対参照される
 
 ## 注意
 

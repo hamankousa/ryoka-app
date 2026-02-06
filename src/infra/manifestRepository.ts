@@ -64,7 +64,7 @@ export function getManifestBaseUrl() {
   if (fromEnv && fromEnv.trim().length > 0) {
     return fromEnv.trim().endsWith("/") ? fromEnv.trim() : `${fromEnv.trim()}/`;
   }
-  return "http://localhost:8787/";
+  return "http://localhost:8787/ryoka-content/";
 }
 
 export function createManifestRepository({

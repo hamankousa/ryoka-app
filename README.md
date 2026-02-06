@@ -18,6 +18,7 @@ npm run start
 - Git運用ルール: `docs/git-rules.md`
 - 重要判断ログ: `docs/decision-log.md`
 - サンプル配信データ: `sample-content/README.md`
+- 手動起動マニュアル: `docs/local-run-manual.md`
 
 ## 現在の状態
 
