@@ -7,7 +7,7 @@
 場所: `c:\Users\kohtt\OneDrive\ドキュメント\260206寮歌アプリ`
 
 ```bash
-npx serve . -l 8787
+npx serve . -l 8787 --cors
 ```
 
 確認URL:

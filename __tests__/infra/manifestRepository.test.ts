@@ -78,4 +78,17 @@ describe("manifestRepository", () => {
       })
     );
   });
+
+  it("throws helpful message for web fetch failure without cache", async () => {
+    const cache = new MemoryManifestCache();
+    const repo = createManifestRepository({
+      baseUrl,
+      cache,
+      fetchImpl: jest.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+    });
+
+    await expect(repo.getManifest()).rejects.toThrow(
+      "npx serve . -l 8787 --cors"
+    );
+  });
 });

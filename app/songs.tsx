@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Link } from "expo-router";
 
 import { SongManifestItem } from "../src/domain/manifest";
 import { createPlayerStore } from "../src/features/player/playerStore";
@@ -70,20 +71,24 @@ export default function SongsPlaceholderScreen() {
           data={songs}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.row}
-              onPress={() => {
-                const index = songs.findIndex((song) => song.id === item.id);
-                playerStore.setQueue(songs, index);
-                playerStore.play();
-                const state = playerStore.getState();
-                setIsPlaying(state.isPlaying);
-                setCurrentSongTitle(state.currentSong?.title);
-              }}
-            >
-              <Text style={styles.songTitle}>{item.title}</Text>
-              <Text style={styles.songMeta}>更新日: {item.updatedAt}</Text>
-            </Pressable>
+            <View style={styles.row}>
+              <Pressable
+                onPress={() => {
+                  const index = songs.findIndex((song) => song.id === item.id);
+                  playerStore.setQueue(songs, index);
+                  playerStore.play();
+                  const state = playerStore.getState();
+                  setIsPlaying(state.isPlaying);
+                  setCurrentSongTitle(state.currentSong?.title);
+                }}
+              >
+                <Text style={styles.songTitle}>{item.title}</Text>
+                <Text style={styles.songMeta}>更新日: {item.updatedAt}</Text>
+              </Pressable>
+              <Link href={`/lyrics/${item.id}`} style={styles.lyricsLink}>
+                歌詞
+              </Link>
+            </View>
           )}
         />
       )}
@@ -140,7 +145,13 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     borderRadius: 12,
     borderWidth: 1,
+    gap: 8,
     padding: 12,
+  },
+  lyricsLink: {
+    color: "#0F766E",
+    fontSize: 14,
+    fontWeight: "600",
   },
   songMeta: {
     color: "#64748B",

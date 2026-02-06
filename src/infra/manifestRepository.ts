@@ -2,6 +2,8 @@ import { Manifest, parseManifest } from "../domain/manifest";
 
 const MANIFEST_CACHE_KEY = "manifest_cache_v1";
 const MANIFEST_URL_PATH = "manifest.json";
+const WEB_CORS_HELP =
+  "Web fetch failed. Start content server with `npx serve . -l 8787 --cors`.";
 
 type FetchLike = typeof fetch;
 
@@ -114,6 +116,11 @@ export function createManifestRepository({
     } catch (error) {
       if (cached) {
         return cached.manifest;
+      }
+      const message =
+        error instanceof Error ? error.message.toLowerCase() : "";
+      if (message.includes("failed to fetch")) {
+        throw new Error(WEB_CORS_HELP);
       }
       throw error;
     }
