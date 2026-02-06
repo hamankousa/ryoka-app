@@ -1,6 +1,7 @@
 import { SongManifestItem } from "../../domain/manifest";
 import { OfflineEntry } from "../offline/offlineRepo";
 import { DownloadJobStatus } from "./DownloadManager";
+import { hasSongUpdate } from "./updateDetection";
 
 export type DownloadJobView = {
   jobId: string;
@@ -30,7 +31,7 @@ export function getSongDownloadState(
     };
   }
 
-  const hasUpdate = new Date(song.updatedAt).getTime() > new Date(offlineEntry.updatedAt).getTime();
+  const hasUpdate = hasSongUpdate(song, offlineEntry);
   if (hasUpdate) {
     return {
       badge: "更新あり",

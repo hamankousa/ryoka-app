@@ -92,6 +92,12 @@ docs/                # 手順書
 - `manifest` の `audio` は `vocalMp3Url` と `pianoMp3Url` を持つ
 - `defaultSource` は初期再生の選択値として使う（現状は `vocal`）
 
-## 11. 手動起動マニュアル
+## 11. 更新検知方針
+
+- まず `updatedAt` 比較で更新判定する
+- 追加で `hash/size` がある場合は差分検知に使う
+- いずれかに差分があれば「更新あり」を表示する
+
+## 12. 手動起動マニュアル
 
 - 別ターミナルでの起動手順は `docs/local-run-manual.md` を参照する
