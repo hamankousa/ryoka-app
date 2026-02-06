@@ -81,7 +81,7 @@ docs/                # 手順書
 ## 9. サンプルデータ運用
 
 - 曲一覧（manifest）は `../ryoka-content/manifest.json` を使う
-- 実リソースは `sample-content/` を使う
+- 実リソース（audio/lyrics/score）も `../ryoka-content/` を使う
 - ローカル配信は親フォルダで `npx serve . -l 8787`
 - `BASE_URL` は `http://<your-ip>:8787/ryoka-content/` を設定する
 - 実機確認時はPCと端末を同一ネットワークに接続する

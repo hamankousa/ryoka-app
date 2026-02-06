@@ -17,7 +17,7 @@ npm run start
 - 開発ルール正本: `AGENTS.md`
 - Git運用ルール: `docs/git-rules.md`
 - 重要判断ログ: `docs/decision-log.md`
-- サンプル配信データ: `sample-content/README.md`
+- コンテンツ管理: `../ryoka-content/README.md`
 - 手動起動マニュアル: `docs/local-run-manual.md`
 
 ## 現在の状態

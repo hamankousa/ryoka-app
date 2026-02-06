@@ -13,6 +13,8 @@ npx serve . -l 8787
 確認URL:
 
 - `http://localhost:8787/ryoka-content/manifest.json`
+- `http://localhost:8787/ryoka-content/audio/vocal/m45.mp3`
+- `http://localhost:8787/ryoka-content/lyrics/m45.html`
 
 ## ターミナル2: アプリ起動（Web）
 
@@ -38,6 +40,8 @@ npm run web
 
 - manifestが読めない:
   `http://localhost:8787/ryoka-content/manifest.json` を直接開いて確認
+- mp3/html/pdfが読めない:
+  `ryoka-content` 内に `audio/lyrics/score` があるか確認
 - 曲一覧が空:
   `EXPO_PUBLIC_MANIFEST_BASE_URL` が正しいか確認
 - ポート競合:
