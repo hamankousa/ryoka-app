@@ -1,0 +1,43 @@
+{
+  "version": "2026-02-06",
+  "songs": [
+    {
+      "id": "m45",
+      "title": "都ぞ弥生",
+      "updatedAt": "2026-02-06T00:00:00Z",
+      "audio": {
+        "vocalMp3Url": "audio/vocal/m45.mp3",
+        "pianoMp3Url": "audio/piano/m45.mp3",
+        "defaultSource": "vocal"
+      },
+      "lyrics": {
+        "htmlUrl": "lyrics/m45.html"
+      },
+      "score": {
+        "pdfUrl": "score/m45.pdf"
+      },
+      "tags": ["sample", "dorm-song"],
+      "description": "サンプル曲データ（開発用）",
+      "order": 1
+    },
+    {
+      "id": "m46",
+      "title": "永遠の幸",
+      "updatedAt": "2026-02-05T00:00:00Z",
+      "audio": {
+        "vocalMp3Url": "audio/vocal/m46.mp3",
+        "pianoMp3Url": "audio/piano/m46.mp3",
+        "defaultSource": "vocal"
+      },
+      "lyrics": {
+        "htmlUrl": "lyrics/m46.html"
+      },
+      "score": {
+        "pdfUrl": "score/m46.pdf"
+      },
+      "tags": ["sample"],
+      "description": "更新検知確認用の2曲目サンプル",
+      "order": 2
+    }
+  ]
+}
