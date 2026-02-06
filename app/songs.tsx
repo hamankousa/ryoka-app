@@ -57,6 +57,7 @@ export default function SongsScreen() {
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(audioEngine.getSnapshot());
   const [currentSongTitle, setCurrentSongTitle] = useState<string | undefined>(undefined);
   const [currentSource, setCurrentSource] = useState<AudioSource>("vocal");
+  const [currentSourceLabel, setCurrentSourceLabel] = useState<string>("Vocal");
   const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
   const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -93,6 +94,7 @@ export default function SongsScreen() {
         playerStore.setQueue(result.songs, 0);
         setCurrentSongTitle(playerStore.getState().currentSong?.title);
         setCurrentSource(playerStore.getState().source);
+        setCurrentSourceLabel(playerStore.getState().source === "piano" ? "Piano" : "Vocal");
 
         const offline = await downloadService.listOfflineEntries();
         if (isMounted) {
@@ -148,6 +150,28 @@ export default function SongsScreen() {
       setPlaybackError(null);
       setCurrentSongTitle(song.title);
       setCurrentSource(source);
+      setCurrentSourceLabel(source === "piano" ? "Piano" : "Vocal");
+    } catch (error) {
+      setPlaybackError(error instanceof Error ? error.message : "再生に失敗しました。");
+    }
+  };
+
+  const playSongWithCustomVocal = async (
+    song: SongManifestItem,
+    alternate: { id: string; label: string; mp3Url: string }
+  ) => {
+    const index = songs.findIndex((item) => item.id === song.id);
+    if (index < 0) {
+      return;
+    }
+    playerStore.setQueue(songs, index);
+    playerStore.setSource("vocal");
+    try {
+      await audioEngine.play(alternate.mp3Url);
+      setPlaybackError(null);
+      setCurrentSongTitle(song.title);
+      setCurrentSource("vocal");
+      setCurrentSourceLabel(`Vocal(${alternate.label})`);
     } catch (error) {
       setPlaybackError(error instanceof Error ? error.message : "再生に失敗しました。");
     }
@@ -161,7 +185,7 @@ export default function SongsScreen() {
     await playSongWithSource(state.currentSong, state.source);
   };
 
-  const sourceLabel = currentSource === "piano" ? "Piano" : "Vocal";
+  const sourceLabel = currentSourceLabel || (currentSource === "piano" ? "Piano" : "Vocal");
 
   return (
     <View style={styles.container}>
@@ -227,6 +251,17 @@ export default function SongsScreen() {
                           >
                             <Text style={styles.playButtonText}>Piano</Text>
                           </Pressable>
+                          {item.audio.vocalAlternates?.map((alternate) => (
+                            <Pressable
+                              key={`${item.id}:${alternate.id}`}
+                              style={styles.playButtonAltVocal}
+                              onPress={() => {
+                                void playSongWithCustomVocal(item, alternate);
+                              }}
+                            >
+                              <Text style={styles.playButtonText}>{`Vocal-${alternate.label}`}</Text>
+                            </Pressable>
+                          ))}
                         </View>
 
                         <View style={styles.links}>
@@ -410,6 +445,12 @@ const styles = StyleSheet.create({
   },
   playButtonPiano: {
     backgroundColor: "#7C3AED",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  playButtonAltVocal: {
+    backgroundColor: "#0EA5E9",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 7,

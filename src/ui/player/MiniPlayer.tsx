@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { GestureResponderEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { GestureResponderEvent, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   MAX_TEMPO_RATE,
@@ -70,6 +70,7 @@ export function MiniPlayer({
 }: Props) {
   const [seekWidth, setSeekWidth] = useState(0);
   const [tempoWidth, setTempoWidth] = useState(0);
+  const tempoRatioRef = useRef(0);
   const ratio = useMemo(() => {
     if (!durationSec || durationSec <= 0) {
       return 0;
@@ -77,6 +78,7 @@ export function MiniPlayer({
     return Math.min(Math.max(positionSec / durationSec, 0), 1);
   }, [durationSec, positionSec]);
   const tempoRatio = useMemo(() => tempoRateToRatio(tempoRate), [tempoRate]);
+  tempoRatioRef.current = tempoRatio;
 
   const handleSeekPress = (event: GestureResponderEvent) => {
     if (!canSeek || seekWidth <= 0 || durationSec <= 0) {
@@ -86,13 +88,26 @@ export function MiniPlayer({
     onSeek(next);
   };
 
-  const handleTempoBarPress = (event: GestureResponderEvent) => {
-    if (!canControlTempo || tempoWidth <= 0) {
-      return;
-    }
-    const ratioFromX = Math.min(Math.max(event.nativeEvent.locationX / tempoWidth, 0), 1);
-    onTempoChange(ratioToTempoRate(ratioFromX));
-  };
+  const tempoThumbResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: () => canControlTempo && tempoWidth > 0,
+        onPanResponderGrant: () => {
+          tempoRatioRef.current = tempoRateToRatio(tempoRate);
+        },
+        onPanResponderMove: (_event, gestureState) => {
+          if (!canControlTempo || tempoWidth <= 0) {
+            return;
+          }
+          const nextRatio = Math.min(
+            Math.max(tempoRatioRef.current + gestureState.dx / tempoWidth, 0),
+            1
+          );
+          onTempoChange(ratioToTempoRate(nextRatio));
+        },
+      }),
+    [canControlTempo, onTempoChange, tempoRate, tempoWidth]
+  );
 
   return (
     <View style={styles.container}>
@@ -136,13 +151,20 @@ export function MiniPlayer({
           <Text style={styles.sectionLabel}>
             テンポ: {tempoRate.toFixed(2)}x（{MIN_TEMPO_RATE}x - {MAX_TEMPO_RATE}x）
           </Text>
-          <Pressable
-            style={styles.tempoTrack}
-            onPress={handleTempoBarPress}
-            onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}
-          >
+          <View style={styles.tempoTrack} onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}>
             <View style={[styles.tempoFill, { width: `${tempoRatio * 100}%` }]} />
-          </Pressable>
+            <View
+              style={[
+                styles.tempoThumbWrap,
+                { left: `${tempoRatio * 100}%` },
+              ]}
+              pointerEvents={canControlTempo ? "auto" : "none"}
+              {...tempoThumbResponder.panHandlers}
+            >
+              <View style={styles.tempoThumb} />
+            </View>
+          </View>
+          <Text style={styles.tempoHint}>つまみを左右にドラッグして調整</Text>
           <View style={styles.optionRow}>
             {TEMPO_OPTIONS.map((tempo) => (
               <Pressable
@@ -286,15 +308,34 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     height: 10,
   },
+  tempoHint: {
+    color: "#64748B",
+    fontSize: 11,
+    marginTop: 4,
+  },
   tempoSection: {
     marginTop: 4,
   },
   tempoTrack: {
     backgroundColor: "#D8B4FE",
     borderRadius: 5,
-    height: 10,
+    height: 14,
     marginTop: 6,
     overflow: "hidden",
+    position: "relative",
+  },
+  tempoThumb: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#6D28D9",
+    borderRadius: 9,
+    borderWidth: 2,
+    height: 18,
+    width: 18,
+  },
+  tempoThumbWrap: {
+    marginLeft: -9,
+    marginTop: -2,
+    position: "absolute",
   },
   timeLabel: {
     color: "#334155",
@@ -312,4 +353,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

@@ -13,6 +13,13 @@ describe("parseManifest", () => {
             audio: {
               vocalMp3Url: "audio/vocal/m45.mp3",
               pianoMp3Url: "audio/piano/m45.mp3",
+              vocalAlternates: [
+                {
+                  id: "guitar",
+                  label: "ギター",
+                  mp3Url: "audio/vocal/m45__alt_guitar.mp3",
+                },
+              ],
               defaultSource: "vocal",
             },
             lyrics: { htmlUrl: "lyrics/m45.html" },
@@ -28,6 +35,9 @@ describe("parseManifest", () => {
     );
     expect(manifest.songs[0].lyrics.htmlUrl).toBe(
       "https://example.com/content/lyrics/m45.html"
+    );
+    expect(manifest.songs[0].audio.vocalAlternates?.[0].mp3Url).toBe(
+      "https://example.com/content/audio/vocal/m45__alt_guitar.mp3"
     );
   });
 

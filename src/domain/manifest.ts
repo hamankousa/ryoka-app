@@ -11,6 +11,15 @@ const AudioLegacySchema = z.object({
 const AudioSplitSchema = z.object({
   vocalMp3Url: UrlField,
   pianoMp3Url: UrlField,
+  vocalAlternates: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().min(1),
+        mp3Url: UrlField,
+      })
+    )
+    .optional(),
   defaultSource: z.enum(["vocal", "piano"]).optional(),
   sizeBytes: z.number().int().positive().optional(),
   sha256: z.string().optional(),
@@ -46,6 +55,11 @@ const ManifestSchema = z.object({
 export type AudioAsset = {
   vocalMp3Url: string;
   pianoMp3Url: string;
+  vocalAlternates?: Array<{
+    id: string;
+    label: string;
+    mp3Url: string;
+  }>;
   defaultSource: "vocal" | "piano";
   sizeBytes?: number;
   sha256?: string;
@@ -100,6 +114,10 @@ function normalizeAudio(
   return {
     vocalMp3Url: resolveUrl(baseUrl, audio.vocalMp3Url),
     pianoMp3Url: resolveUrl(baseUrl, audio.pianoMp3Url),
+    vocalAlternates: audio.vocalAlternates?.map((item) => ({
+      ...item,
+      mp3Url: resolveUrl(baseUrl, item.mp3Url),
+    })),
     defaultSource: audio.defaultSource ?? "vocal",
     sizeBytes: audio.sizeBytes,
     sha256: audio.sha256,

@@ -91,6 +91,7 @@ docs/                # 手順書
 
 - `audio` は `vocal` と `piano` に分離して管理する
 - `manifest` の `audio` は `vocalMp3Url`（mp3）と `pianoMp3Url`（midi）を持つ
+- 代替ボーカルがある曲は `audio.vocalAlternates[]`（`id/label/mp3Url`）を持てる
 - `defaultSource` は初期再生の選択値として使う（現状は `vocal`）
 - Webで `piano` が `.mid/.midi` の場合は `expo-av` ではなく専用MIDIエンジンで再生する
 - MIDI再生中はミニプレイヤーで `seek` / `tempo(0.5x-3.0x)` / `timbre` / `loop` を操作できる
