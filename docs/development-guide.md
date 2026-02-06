@@ -101,3 +101,7 @@ docs/                # 手順書
 ## 12. 手動起動マニュアル
 
 - 別ターミナルでの起動手順は `docs/local-run-manual.md` を参照する
+
+## 13. E2E確認
+
+- 実機の機内モードを含む確認は `docs/e2e-checklist.md` を参照する

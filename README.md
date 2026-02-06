@@ -19,6 +19,7 @@ npm run start
 - 重要判断ログ: `docs/decision-log.md`
 - コンテンツ管理: `../ryoka-content/README.md`
 - 手動起動マニュアル: `docs/local-run-manual.md`
+- E2Eチェック: `docs/e2e-checklist.md`
 
 ## 現在の状態
 
