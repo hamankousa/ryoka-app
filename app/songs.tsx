@@ -61,8 +61,19 @@ export default function SongsScreen() {
   const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
   const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
+  const [currentSongId, setCurrentSongId] = useState<string | null>(null);
+  const [lyricsHtml, setLyricsHtml] = useState<string>("");
 
   const hasSongs = useMemo(() => songs.length > 0, [songs]);
+  const currentSong = useMemo(
+    () => songs.find((song) => song.id === currentSongId) ?? null,
+    [songs, currentSongId]
+  );
+  const currentCreditsText = useMemo(
+    () => (currentSong?.credits && currentSong.credits.length > 0 ? currentSong.credits.join(" / ") : "-"),
+    [currentSong]
+  );
   const groupedSongs = useMemo(() => {
     const groups = new Map<(typeof ERA_ORDER)[number], SongManifestItem[]>();
     for (const song of songs) {
@@ -95,6 +106,7 @@ export default function SongsScreen() {
         setCurrentSongTitle(playerStore.getState().currentSong?.title);
         setCurrentSource(playerStore.getState().source);
         setCurrentSourceLabel(playerStore.getState().source === "piano" ? "Piano" : "Vocal");
+        setCurrentSongId(playerStore.getState().currentSong?.id ?? null);
 
         const offline = await downloadService.listOfflineEntries();
         if (isMounted) {
@@ -136,6 +148,31 @@ export default function SongsScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    async function loadLyricsText() {
+      if (!currentSong) {
+        setLyricsHtml("");
+        return;
+      }
+      try {
+        const response = await fetch(currentSong.lyrics.htmlUrl);
+        const html = await response.text();
+        if (mounted) {
+          setLyricsHtml(html);
+        }
+      } catch {
+        if (mounted) {
+          setLyricsHtml("<p>歌詞の読み込みに失敗しました。</p>");
+        }
+      }
+    }
+    void loadLyricsText();
+    return () => {
+      mounted = false;
+    };
+  }, [currentSong]);
+
   const playSongWithSource = async (song: SongManifestItem, source: AudioSource) => {
     const index = songs.findIndex((item) => item.id === song.id);
     if (index < 0) {
@@ -151,6 +188,7 @@ export default function SongsScreen() {
       setCurrentSongTitle(song.title);
       setCurrentSource(source);
       setCurrentSourceLabel(source === "piano" ? "Piano" : "Vocal");
+      setCurrentSongId(song.id);
     } catch (error) {
       setPlaybackError(error instanceof Error ? error.message : "再生に失敗しました。");
     }
@@ -172,6 +210,7 @@ export default function SongsScreen() {
       setCurrentSongTitle(song.title);
       setCurrentSource("vocal");
       setCurrentSourceLabel(`Vocal(${alternate.label})`);
+      setCurrentSongId(song.id);
     } catch (error) {
       setPlaybackError(error instanceof Error ? error.message : "再生に失敗しました。");
     }
@@ -326,6 +365,9 @@ export default function SongsScreen() {
         canLoop={playbackSnapshot.canLoop}
         canControlTempo={playbackSnapshot.canControlTempo}
         canControlTimbre={playbackSnapshot.canControlTimbre}
+        isExpanded={isPlayerExpanded}
+        onExpand={() => setIsPlayerExpanded(true)}
+        onCollapse={() => setIsPlayerExpanded(false)}
         onPlayPause={() => {
           void (async () => {
             const snap = audioEngine.getSnapshot();
@@ -358,6 +400,7 @@ export default function SongsScreen() {
             const state = playerStore.getState();
             setCurrentSongTitle(state.currentSong?.title);
             setCurrentSource(state.source);
+            setCurrentSongId(state.currentSong?.id ?? null);
             await playCurrentSong();
           })();
         }}
@@ -367,8 +410,18 @@ export default function SongsScreen() {
             const state = playerStore.getState();
             setCurrentSongTitle(state.currentSong?.title);
             setCurrentSource(state.source);
+            setCurrentSongId(state.currentSong?.id ?? null);
             await playCurrentSong();
           })();
+        }}
+        yearLabel={currentSong?.yearLabel}
+        creditsText={currentCreditsText}
+        lyricsHtml={lyricsHtml}
+        onSelectSource={(source) => {
+          if (!currentSong) {
+            return;
+          }
+          void playSongWithSource(currentSong, source);
         }}
       />
     </View>

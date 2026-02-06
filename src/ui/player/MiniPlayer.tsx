@@ -1,5 +1,16 @@
 import { useMemo, useRef, useState } from "react";
-import { GestureResponderEvent, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  GestureResponderEvent,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { WebView } from "react-native-webview";
 
 import {
   MAX_TEMPO_RATE,
@@ -22,6 +33,13 @@ type Props = {
   canLoop: boolean;
   canControlTempo: boolean;
   canControlTimbre: boolean;
+  yearLabel?: string;
+  creditsText?: string;
+  lyricsHtml?: string;
+  onSelectSource: (source: "vocal" | "piano") => void;
+  isExpanded: boolean;
+  onExpand: () => void;
+  onCollapse: () => void;
   onPlayPause: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -60,6 +78,13 @@ export function MiniPlayer({
   canLoop,
   canControlTempo,
   canControlTimbre,
+  yearLabel,
+  creditsText,
+  lyricsHtml,
+  onSelectSource,
+  isExpanded,
+  onExpand,
+  onCollapse,
   onPlayPause,
   onPrev,
   onNext,
@@ -71,12 +96,14 @@ export function MiniPlayer({
   const [seekWidth, setSeekWidth] = useState(0);
   const [tempoWidth, setTempoWidth] = useState(0);
   const tempoRatioRef = useRef(0);
+
   const ratio = useMemo(() => {
     if (!durationSec || durationSec <= 0) {
       return 0;
     }
     return Math.min(Math.max(positionSec / durationSec, 0), 1);
   }, [durationSec, positionSec]);
+
   const tempoRatio = useMemo(() => tempoRateToRatio(tempoRate), [tempoRate]);
   tempoRatioRef.current = tempoRatio;
 
@@ -110,104 +137,211 @@ export function MiniPlayer({
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title ?? "未選択"}</Text>
-      <Text style={styles.source}>{sourceLabel ?? "-"}</Text>
-
-      <Pressable
-        style={[styles.seekTrack, !canSeek && styles.disabled]}
-        onPress={handleSeekPress}
-        onLayout={(event) => setSeekWidth(event.nativeEvent.layout.width)}
-      >
-        <View style={[styles.seekFill, { width: `${ratio * 100}%` }]} />
-      </Pressable>
-      <View style={styles.timeRow}>
-        <Text style={styles.timeLabel}>{formatTime(positionSec)}</Text>
-        <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
+    <>
+      <View style={styles.collapsedBar}>
+        <Pressable style={styles.expandTouch} onPress={onExpand} testID="mini-player-expand-touch">
+          <View style={styles.artworkThumb} />
+          <View style={styles.collapsedTextWrap}>
+            <Text numberOfLines={1} style={styles.collapsedTitle}>
+              {title ?? "未選択"}
+            </Text>
+            <Text numberOfLines={1} style={styles.collapsedSource}>
+              {sourceLabel ?? "-"}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable onPress={onPlayPause} style={styles.collapsedPlayButton}>
+          <Text style={styles.collapsedPlayText}>{isPlaying ? "Pause" : "Play"}</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.controls}>
-        <Pressable onPress={onPrev} style={styles.secondaryButton}>
-          <Text style={styles.secondaryText}>Prev</Text>
-        </Pressable>
-        <Pressable onPress={onPlayPause} style={styles.primaryButton}>
-          <Text style={styles.primaryText}>{isPlaying ? "Pause" : "Play"}</Text>
-        </Pressable>
-        <Pressable onPress={onNext} style={styles.secondaryButton}>
-          <Text style={styles.secondaryText}>Next</Text>
-        </Pressable>
-        {canLoop && (
-          <Pressable
-            onPress={() => onLoopToggle(!loopEnabled)}
-            style={[styles.loopButton, loopEnabled && styles.loopButtonActive]}
-          >
-            <Text style={styles.loopText}>{loopEnabled ? "ループ:ON" : "ループ:OFF"}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {canControlTempo && (
-        <View style={styles.tempoSection}>
-          <Text style={styles.sectionLabel}>
-            テンポ: {tempoRate.toFixed(2)}x（{MIN_TEMPO_RATE}x - {MAX_TEMPO_RATE}x）
-          </Text>
-          <View style={styles.tempoTrack} onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}>
-            <View style={[styles.tempoFill, { width: `${tempoRatio * 100}%` }]} />
-            <View
-              style={[
-                styles.tempoThumbWrap,
-                { left: `${tempoRatio * 100}%` },
-              ]}
-              pointerEvents={canControlTempo ? "auto" : "none"}
-              {...tempoThumbResponder.panHandlers}
-            >
-              <View style={styles.tempoThumb} />
+      <Modal visible={isExpanded} animationType="slide" transparent onRequestClose={onCollapse}>
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.backdrop} onPress={onCollapse} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.handle} />
+              <Pressable onPress={onCollapse} testID="mini-player-collapse-touch">
+                <Text style={styles.closeText}>閉じる</Text>
+              </Pressable>
             </View>
-          </View>
-          <Text style={styles.tempoHint}>つまみを左右にドラッグして調整</Text>
-          <View style={styles.optionRow}>
-            {TEMPO_OPTIONS.map((tempo) => (
-              <Pressable
-                key={tempo}
-                onPress={() => onTempoChange(tempo)}
-                style={[
-                  styles.optionButton,
-                  Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive,
-                ]}
-              >
-                <Text style={styles.optionText}>{tempo}x</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
 
-      {canControlTimbre && (
-        <View style={styles.tempoSection}>
-          <Text style={styles.sectionLabel}>音色</Text>
-          <View style={styles.optionRow}>
-            {TIMBRE_OPTIONS.map((option) => (
+            <View style={styles.hero}>
+              <View style={styles.topLyricsPanel}>
+                <Text style={styles.sectionTitle}>歌詞</Text>
+                {Platform.OS === "web" ? (
+                  <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
+                    {/* eslint-disable-next-line react/no-danger */}
+                    <div
+                      style={{ fontSize: 13, lineHeight: 1.6, color: "#1E293B" }}
+                      dangerouslySetInnerHTML={{ __html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
+                    />
+                  </ScrollView>
+                ) : (
+                  <WebView
+                    originWhitelist={["*"]}
+                    source={{ html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
+                    style={styles.lyricsWebView}
+                  />
+                )}
+              </View>
+              <Text style={styles.title}>{title ?? "未選択"}</Text>
+              <Text style={styles.source}>{sourceLabel ?? "-"}</Text>
+              <Text style={styles.metaLine}>年度: {yearLabel ?? "-"}</Text>
+              <Text style={styles.metaLine}>作歌・作曲: {creditsText ?? "-"}</Text>
+            </View>
+
+            <View style={styles.sourceSwitchRow}>
               <Pressable
-                key={option.value}
-                onPress={() => onTimbreChange(option.value)}
-                style={[styles.optionButton, timbre === option.value && styles.optionActive]}
+                style={[styles.sourceSwitchButton, sourceLabel?.startsWith("Vocal") && styles.sourceSwitchActive]}
+                onPress={() => onSelectSource("vocal")}
               >
-                <Text style={styles.optionText}>{option.label}</Text>
+                <Text style={styles.sourceSwitchText}>Vocal</Text>
               </Pressable>
-            ))}
+              <Pressable
+                style={[styles.sourceSwitchButton, sourceLabel === "Piano" && styles.sourceSwitchActive]}
+                onPress={() => onSelectSource("piano")}
+              >
+                <Text style={styles.sourceSwitchText}>Piano</Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              style={[styles.seekTrack, !canSeek && styles.disabled]}
+              onPress={handleSeekPress}
+              onLayout={(event) => setSeekWidth(event.nativeEvent.layout.width)}
+            >
+              <View style={[styles.seekFill, { width: `${ratio * 100}%` }]} />
+            </Pressable>
+            <View style={styles.timeRow}>
+              <Text style={styles.timeLabel}>{formatTime(positionSec)}</Text>
+              <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
+            </View>
+
+            <View style={styles.controls}>
+              <Pressable onPress={onPrev} style={styles.secondaryButton}>
+                <Text style={styles.secondaryText}>Prev</Text>
+              </Pressable>
+              <Pressable onPress={onPlayPause} style={styles.primaryButton}>
+                <Text style={styles.primaryText}>{isPlaying ? "Pause" : "Play"}</Text>
+              </Pressable>
+              <Pressable onPress={onNext} style={styles.secondaryButton}>
+                <Text style={styles.secondaryText}>Next</Text>
+              </Pressable>
+              {canLoop && (
+                <Pressable
+                  onPress={() => onLoopToggle(!loopEnabled)}
+                  style={[styles.loopButton, loopEnabled && styles.loopButtonActive]}
+                >
+                  <Text style={styles.loopText}>{loopEnabled ? "ループ:ON" : "ループ:OFF"}</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {canControlTempo && (
+              <View style={styles.tempoSection}>
+                <Text style={styles.sectionLabel}>
+                  テンポ: {tempoRate.toFixed(2)}x（{MIN_TEMPO_RATE}x - {MAX_TEMPO_RATE}x）
+                </Text>
+                <View
+                  style={styles.tempoTrack}
+                  onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}
+                >
+                  <View style={[styles.tempoFill, { width: `${tempoRatio * 100}%` }]} />
+                  <View
+                    style={[styles.tempoThumbWrap, { left: `${tempoRatio * 100}%` }]}
+                    pointerEvents={canControlTempo ? "auto" : "none"}
+                    {...tempoThumbResponder.panHandlers}
+                  >
+                    <View style={styles.tempoThumb} />
+                  </View>
+                </View>
+                <Text style={styles.tempoHint}>つまみを左右にドラッグして調整</Text>
+                <View style={styles.optionRow}>
+                  {TEMPO_OPTIONS.map((tempo) => (
+                    <Pressable
+                      key={tempo}
+                      onPress={() => onTempoChange(tempo)}
+                      style={[styles.optionButton, Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive]}
+                    >
+                      <Text style={styles.optionText}>{tempo}x</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {canControlTimbre && (
+              <View style={styles.tempoSection}>
+                <Text style={styles.sectionLabel}>音色</Text>
+                <View style={styles.optionRow}>
+                  {TIMBRE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => onTimbreChange(option.value)}
+                      style={[styles.optionButton, timbre === option.value && styles.optionActive]}
+                    >
+                      <Text style={styles.optionText}>{option.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
           </View>
         </View>
-      )}
-    </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#EEF2FF",
-    borderTopColor: "#CBD5E1",
+  artworkThumb: {
+    backgroundColor: "#93C5FD",
+    borderRadius: 7,
+    height: 34,
+    width: 34,
+  },
+  backdrop: {
+    backgroundColor: "rgba(15,23,42,0.36)",
+    flex: 1,
+  },
+  closeText: {
+    color: "#1E293B",
+    fontWeight: "700",
+  },
+  collapsedBar: {
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderTopColor: "#1E293B",
     borderTopWidth: 1,
-    padding: 12,
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  collapsedPlayButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  collapsedPlayText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  collapsedSource: {
+    color: "#94A3B8",
+    fontSize: 12,
+  },
+  collapsedTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  collapsedTitle: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
   controls: {
     alignItems: "center",
@@ -218,6 +352,22 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  expandTouch: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+  },
+  handle: {
+    backgroundColor: "#94A3B8",
+    borderRadius: 99,
+    height: 4,
+    width: 54,
+  },
+  hero: {
+    alignItems: "center",
+    marginTop: 8,
   },
   loopButton: {
     backgroundColor: "#E2E8F0",
@@ -232,6 +382,29 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 12,
     fontWeight: "700",
+  },
+  lyricsHint: {
+    color: "#64748B",
+    fontSize: 12,
+  },
+  lyricsScroll: {
+    flex: 1,
+  },
+  lyricsContent: {
+    paddingBottom: 20,
+    paddingRight: 8,
+  },
+  lyricsWebView: {
+    backgroundColor: "transparent",
+    flex: 1,
+  },
+  metaLine: {
+    color: "#475569",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalRoot: {
+    flex: 1,
   },
   optionActive: {
     backgroundColor: "#DBEAFE",
@@ -286,6 +459,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 10,
   },
+  sectionTitle: {
+    color: "#1E293B",
+    fontWeight: "700",
+  },
   seekFill: {
     backgroundColor: "#2563EB",
     borderRadius: 5,
@@ -298,10 +475,57 @@ const styles = StyleSheet.create({
     marginTop: 8,
     overflow: "hidden",
   },
+  sheet: {
+    backgroundColor: "#E2E8F0",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "92%",
+    minHeight: "70%",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  sheetHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   source: {
     color: "#475569",
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  sourceSwitchActive: {
+    backgroundColor: "#DBEAFE",
+    borderColor: "#2563EB",
+  },
+  sourceSwitchButton: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#CBD5E1",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sourceSwitchRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  sourceSwitchText: {
+    color: "#0F172A",
+    fontWeight: "700",
+  },
+  topLyricsPanel: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 240,
+    marginBottom: 14,
+    overflow: "hidden",
+    padding: 10,
+    width: "100%",
   },
   tempoFill: {
     backgroundColor: "#7C3AED",
@@ -316,14 +540,6 @@ const styles = StyleSheet.create({
   tempoSection: {
     marginTop: 4,
   },
-  tempoTrack: {
-    backgroundColor: "#D8B4FE",
-    borderRadius: 5,
-    height: 14,
-    marginTop: 6,
-    overflow: "hidden",
-    position: "relative",
-  },
   tempoThumb: {
     backgroundColor: "#FFFFFF",
     borderColor: "#6D28D9",
@@ -337,6 +553,14 @@ const styles = StyleSheet.create({
     marginTop: -2,
     position: "absolute",
   },
+  tempoTrack: {
+    backgroundColor: "#D8B4FE",
+    borderRadius: 5,
+    height: 14,
+    marginTop: 6,
+    overflow: "hidden",
+    position: "relative",
+  },
   timeLabel: {
     color: "#334155",
     fontSize: 12,
@@ -349,7 +573,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#0F172A",
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
   },
 });
