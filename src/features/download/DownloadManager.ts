@@ -234,7 +234,9 @@ export function createDownloadManager({
           error: item.error,
         })),
       });
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
     getSnapshot: (): DownloadSnapshot => ({
       activeCount,

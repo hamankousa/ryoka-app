@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
 
 import { SongManifestItem } from "../src/domain/manifest";
@@ -13,6 +13,28 @@ import { MiniPlayer } from "../src/ui/player/MiniPlayer";
 
 const manifestRepository = createManifestRepository({});
 const playerStore = createPlayerStore();
+const ERA_ORDER = ["m", "t", "s", "h", "r", "a", "other"] as const;
+
+function getEraKey(songId: string): (typeof ERA_ORDER)[number] {
+  const prefix = songId.charAt(0).toLowerCase();
+  if (prefix === "m" || prefix === "t" || prefix === "s" || prefix === "h" || prefix === "r" || prefix === "a") {
+    return prefix;
+  }
+  return "other";
+}
+
+function getEraLabel(key: (typeof ERA_ORDER)[number]) {
+  const labels: Record<(typeof ERA_ORDER)[number], string> = {
+    m: "明治",
+    t: "大正",
+    s: "昭和",
+    h: "平成",
+    r: "令和",
+    a: "その他",
+    other: "未分類",
+  };
+  return labels[key];
+}
 
 export default function SongsPlaceholderScreen() {
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
@@ -22,8 +44,24 @@ export default function SongsPlaceholderScreen() {
   const [currentSongTitle, setCurrentSongTitle] = useState<string | undefined>(undefined);
   const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
   const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const hasSongs = useMemo(() => songs.length > 0, [songs]);
+  const groupedSongs = useMemo(() => {
+    const groups = new Map<(typeof ERA_ORDER)[number], SongManifestItem[]>();
+    for (const song of songs) {
+      const key = getEraKey(song.id);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)?.push(song);
+    }
+    return ERA_ORDER.map((key) => ({
+      key,
+      label: getEraLabel(key),
+      songs: groups.get(key) ?? [],
+    })).filter((section) => section.songs.length > 0);
+  }, [songs]);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,12 +124,29 @@ export default function SongsPlaceholderScreen() {
       )}
 
       {hasSongs && (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={songs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
+        <ScrollView contentContainerStyle={styles.list}>
+          {groupedSongs.map((section) => {
+            const isCollapsed = collapsedSections[section.key] ?? false;
+            return (
+              <View key={section.key} style={styles.section}>
+                <Pressable
+                  onPress={() =>
+                    setCollapsedSections((current) => ({
+                      ...current,
+                      [section.key]: !isCollapsed,
+                    }))
+                  }
+                  style={styles.sectionHeader}
+                >
+                  <Text style={styles.sectionTitle}>
+                    {section.label} ({section.songs.length})
+                  </Text>
+                  <Text style={styles.sectionToggle}>{isCollapsed ? "展開" : "折り畳み"}</Text>
+                </Pressable>
+
+                {!isCollapsed &&
+                  section.songs.map((item) => (
+                    <View key={item.id} style={styles.row}>
               <Pressable
                 onPress={() => {
                   const index = songs.findIndex((song) => song.id === item.id);
@@ -103,7 +158,10 @@ export default function SongsPlaceholderScreen() {
                 }}
               >
                 <Text style={styles.songTitle}>{item.title}</Text>
-                <Text style={styles.songMeta}>更新日: {item.updatedAt}</Text>
+                <Text style={styles.songMeta}>年度: {item.yearLabel ?? "-"}</Text>
+                <Text style={styles.songMeta}>
+                  作歌・作曲: {item.credits && item.credits.length > 0 ? item.credits.join(" / ") : "-"}
+                </Text>
               </Pressable>
               <Link href={`/lyrics/${item.id}`} style={styles.lyricsLink}>
                 歌詞
@@ -149,8 +207,11 @@ export default function SongsPlaceholderScreen() {
                 );
                 })()}
             </View>
-          )}
-        />
+                  ))}
+              </View>
+            );
+          })}
+        </ScrollView>
       )}
 
       <MiniPlayer
@@ -198,7 +259,29 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
-    paddingBottom: 8,
+    paddingBottom: 80,
+  },
+  section: {
+    gap: 8,
+  },
+  sectionHeader: {
+    alignItems: "center",
+    backgroundColor: "#E2E8F0",
+    borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  sectionTitle: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  sectionToggle: {
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "600",
   },
   downloadArea: {
     gap: 6,

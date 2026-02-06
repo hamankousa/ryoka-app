@@ -19,6 +19,8 @@ const AudioSplitSchema = z.object({
 const ManifestSongSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
+  yearLabel: z.string().optional(),
+  credits: z.array(z.string()).optional(),
   updatedAt: z.string().min(1),
   audio: z.union([AudioLegacySchema, AudioSplitSchema]),
   lyrics: z.object({
@@ -52,6 +54,8 @@ export type AudioAsset = {
 export type SongManifestItem = {
   id: string;
   title: string;
+  yearLabel?: string;
+  credits?: string[];
   updatedAt: string;
   audio: AudioAsset;
   lyrics: {
