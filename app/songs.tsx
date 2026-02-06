@@ -88,6 +88,9 @@ export default function SongsPlaceholderScreen() {
               <Link href={`/lyrics/${item.id}`} style={styles.lyricsLink}>
                 歌詞
               </Link>
+              <Link href={`/score/${item.id}`} style={styles.scoreLink}>
+                楽譜
+              </Link>
             </View>
           )}
         />
@@ -150,6 +153,11 @@ const styles = StyleSheet.create({
   },
   lyricsLink: {
     color: "#0F766E",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  scoreLink: {
+    color: "#1D4ED8",
     fontSize: 14,
     fontWeight: "600",
   },
