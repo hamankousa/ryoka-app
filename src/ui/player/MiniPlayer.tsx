@@ -12,12 +12,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 
-import {
-  MAX_TEMPO_RATE,
-  MIN_TEMPO_RATE,
-  ratioToTempoRate,
-  tempoRateToRatio,
-} from "../../features/player/midiTransport";
+import { MAX_TEMPO_RATE, MIN_TEMPO_RATE, ratioToTempoRate, tempoRateToRatio } from "../../features/player/midiTransport";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
 
 type Props = {
@@ -28,11 +23,14 @@ type Props = {
   durationSec: number;
   tempoRate: number;
   timbre: MidiTimbre;
+  octaveShift: number;
   loopEnabled: boolean;
   canSeek: boolean;
   canLoop: boolean;
   canControlTempo: boolean;
   canControlTimbre: boolean;
+  canControlOctave: boolean;
+  liquidGlassEnabled?: boolean;
   yearLabel?: string;
   creditsText?: string;
   lyricsHtml?: string;
@@ -46,6 +44,7 @@ type Props = {
   onSeek: (seconds: number) => void;
   onTempoChange: (rate: number) => void;
   onTimbreChange: (timbre: MidiTimbre) => void;
+  onOctaveShiftChange: (shift: number) => void;
   onLoopToggle: (enabled: boolean) => void;
 };
 
@@ -73,11 +72,14 @@ export function MiniPlayer({
   durationSec,
   tempoRate,
   timbre,
+  octaveShift,
   loopEnabled,
   canSeek,
   canLoop,
   canControlTempo,
   canControlTimbre,
+  canControlOctave,
+  liquidGlassEnabled = false,
   yearLabel,
   creditsText,
   lyricsHtml,
@@ -91,6 +93,7 @@ export function MiniPlayer({
   onSeek,
   onTempoChange,
   onTimbreChange,
+  onOctaveShiftChange,
   onLoopToggle,
 }: Props) {
   const [seekWidth, setSeekWidth] = useState(0);
@@ -138,7 +141,12 @@ export function MiniPlayer({
 
   return (
     <>
-      <View style={styles.collapsedBar}>
+      <View
+        style={[
+          styles.collapsedBar,
+          liquidGlassEnabled && styles.glassBar,
+        ]}
+      >
         <Pressable style={styles.expandTouch} onPress={onExpand} testID="mini-player-expand-touch">
           <View style={styles.artworkThumb} />
           <View style={styles.collapsedTextWrap}>
@@ -158,7 +166,7 @@ export function MiniPlayer({
       <Modal visible={isExpanded} animationType="slide" transparent onRequestClose={onCollapse}>
         <View style={styles.modalRoot}>
           <Pressable style={styles.backdrop} onPress={onCollapse} />
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, liquidGlassEnabled && styles.glassSheet]}>
             <View style={styles.sheetHeader}>
               <View style={styles.handle} />
               <Pressable onPress={onCollapse} testID="mini-player-collapse-touch">
@@ -167,7 +175,12 @@ export function MiniPlayer({
             </View>
 
             <View style={styles.hero}>
-              <View style={styles.topLyricsPanel}>
+              <View
+                style={[
+                  styles.topLyricsPanel,
+                  liquidGlassEnabled && styles.glassPanel,
+                ]}
+              >
                 <Text style={styles.sectionTitle}>歌詞</Text>
                 {Platform.OS === "web" ? (
                   <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
@@ -193,13 +206,21 @@ export function MiniPlayer({
 
             <View style={styles.sourceSwitchRow}>
               <Pressable
-                style={[styles.sourceSwitchButton, sourceLabel?.startsWith("Vocal") && styles.sourceSwitchActive]}
+                style={[
+                  styles.sourceSwitchButton,
+                  liquidGlassEnabled && styles.glassOption,
+                  sourceLabel?.startsWith("Vocal") && styles.sourceSwitchActive,
+                ]}
                 onPress={() => onSelectSource("vocal")}
               >
                 <Text style={styles.sourceSwitchText}>Vocal</Text>
               </Pressable>
               <Pressable
-                style={[styles.sourceSwitchButton, sourceLabel === "Piano" && styles.sourceSwitchActive]}
+                style={[
+                  styles.sourceSwitchButton,
+                  liquidGlassEnabled && styles.glassOption,
+                  sourceLabel === "Piano" && styles.sourceSwitchActive,
+                ]}
                 onPress={() => onSelectSource("piano")}
               >
                 <Text style={styles.sourceSwitchText}>Piano</Text>
@@ -207,7 +228,11 @@ export function MiniPlayer({
             </View>
 
             <Pressable
-              style={[styles.seekTrack, !canSeek && styles.disabled]}
+              style={[
+                styles.seekTrack,
+                liquidGlassEnabled && styles.glassTrack,
+                !canSeek && styles.disabled,
+              ]}
               onPress={handleSeekPress}
               onLayout={(event) => setSeekWidth(event.nativeEvent.layout.width)}
             >
@@ -262,7 +287,11 @@ export function MiniPlayer({
                     <Pressable
                       key={tempo}
                       onPress={() => onTempoChange(tempo)}
-                      style={[styles.optionButton, Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive]}
+                      style={[
+                        styles.optionButton,
+                        liquidGlassEnabled && styles.glassOption,
+                        Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive,
+                      ]}
                     >
                       <Text style={styles.optionText}>{tempo}x</Text>
                     </Pressable>
@@ -279,9 +308,37 @@ export function MiniPlayer({
                     <Pressable
                       key={option.value}
                       onPress={() => onTimbreChange(option.value)}
-                      style={[styles.optionButton, timbre === option.value && styles.optionActive]}
+                      style={[
+                        styles.optionButton,
+                        liquidGlassEnabled && styles.glassOption,
+                        timbre === option.value && styles.optionActive,
+                      ]}
                     >
                       <Text style={styles.optionText}>{option.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {canControlOctave && (
+              <View style={styles.tempoSection}>
+                <Text style={styles.sectionLabel}>
+                  オクターブ: {octaveShift > 0 ? `+${octaveShift}` : octaveShift}
+                </Text>
+                <View style={styles.optionRow}>
+                  {[-2, -1, 0, 1, 2].map((value) => (
+                    <Pressable
+                      key={value}
+                      testID={`octave-option-${value}`}
+                      onPress={() => onOctaveShiftChange(value)}
+                      style={[
+                        styles.optionButton,
+                        liquidGlassEnabled && styles.glassOption,
+                        octaveShift === value && styles.optionActive,
+                      ]}
+                    >
+                      <Text style={styles.optionText}>{value > 0 ? `+${value}` : value}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -358,6 +415,24 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     gap: 8,
+  },
+  glassBar: {
+    backgroundColor: "rgba(15,23,42,0.72)",
+    borderTopColor: "rgba(148,163,184,0.45)",
+  },
+  glassOption: {
+    backgroundColor: "rgba(255,255,255,0.34)",
+    borderColor: "rgba(255,255,255,0.62)",
+  },
+  glassPanel: {
+    backgroundColor: "rgba(255,255,255,0.46)",
+    borderColor: "rgba(255,255,255,0.7)",
+  },
+  glassSheet: {
+    backgroundColor: "rgba(226,232,240,0.82)",
+  },
+  glassTrack: {
+    backgroundColor: "rgba(203,213,225,0.65)",
   },
   handle: {
     backgroundColor: "#94A3B8",

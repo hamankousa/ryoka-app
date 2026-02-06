@@ -15,11 +15,13 @@ export type PlaybackSnapshot = {
   durationSec: number;
   tempoRate: number;
   timbre: MidiTimbre;
+  octaveShift: number;
   loopEnabled: boolean;
   canSeek: boolean;
   canLoop: boolean;
   canControlTempo: boolean;
   canControlTimbre: boolean;
+  canControlOctave: boolean;
 };
 
 class AudioEngine {
@@ -31,11 +33,13 @@ class AudioEngine {
     durationSec: 0,
     tempoRate: 1,
     timbre: "triangle",
+    octaveShift: 0,
     loopEnabled: false,
     canSeek: true,
     canLoop: true,
     canControlTempo: false,
     canControlTimbre: false,
+    canControlOctave: false,
   };
   private listeners = new Set<(snapshot: PlaybackSnapshot) => void>();
   private webMidi = new WebMidiEngine();
@@ -68,6 +72,7 @@ class AudioEngine {
       canLoop: true,
       canControlTempo: false,
       canControlTimbre: false,
+      canControlOctave: false,
     };
     this.emit();
   };
@@ -106,6 +111,7 @@ class AudioEngine {
     await this.webMidi.setLoopEnabled(this.snapshot.loopEnabled);
     await this.webMidi.setTempo(this.snapshot.tempoRate);
     await this.webMidi.setTimbre(this.snapshot.timbre);
+    await this.webMidi.setOctaveShift(this.snapshot.octaveShift);
     await this.webMidi.play(uri);
     return true;
   }
@@ -144,6 +150,7 @@ class AudioEngine {
         canLoop: true,
         canControlTempo: false,
         canControlTimbre: false,
+        canControlOctave: false,
       };
       this.emit();
     } catch (error) {
@@ -222,6 +229,13 @@ class AudioEngine {
     await this.webMidi.setTimbre(timbre);
   }
 
+  async setOctaveShift(shift: number) {
+    if (this.activeBackend !== "web-midi") {
+      return;
+    }
+    await this.webMidi.setOctaveShift(shift);
+  }
+
   async setLoopEnabled(enabled: boolean) {
     this.snapshot = { ...this.snapshot, loopEnabled: enabled };
     if (this.activeBackend === "web-midi") {
@@ -249,11 +263,13 @@ class AudioEngine {
         durationSec: snapshot.durationSec,
         tempoRate: snapshot.tempoRate,
         timbre: snapshot.timbre,
+        octaveShift: snapshot.octaveShift,
         loopEnabled: snapshot.loopEnabled,
         canSeek: true,
         canLoop: true,
         canControlTempo: true,
         canControlTimbre: true,
+        canControlOctave: true,
       };
       this.emit();
     });

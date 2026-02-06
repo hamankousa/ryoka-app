@@ -7,6 +7,8 @@ import {
 } from "./midiTransport";
 
 export type MidiTimbre = "sine" | "triangle" | "square" | "sawtooth" | "piano";
+export const MIN_OCTAVE_SHIFT = -2;
+export const MAX_OCTAVE_SHIFT = 2;
 
 export type MidiPlaybackSnapshot = {
   isPlaying: boolean;
@@ -16,6 +18,7 @@ export type MidiPlaybackSnapshot = {
   durationSec: number;
   tempoRate: number;
   timbre: MidiTimbre;
+  octaveShift: number;
   loopEnabled: boolean;
 };
 
@@ -26,6 +29,11 @@ type ActiveOscillator = {
 
 function midiToFrequency(noteNumber: number) {
   return 440 * 2 ** ((noteNumber - 69) / 12);
+}
+
+function clampOctaveShift(shift: number) {
+  const rounded = Math.round(shift);
+  return Math.min(MAX_OCTAVE_SHIFT, Math.max(MIN_OCTAVE_SHIFT, rounded));
 }
 
 function resolveOscillatorType(timbre: MidiTimbre): OscillatorType {
@@ -45,6 +53,7 @@ export class WebMidiEngine {
     durationSec: 0,
     tempoRate: 1,
     timbre: "triangle",
+    octaveShift: 0,
     loopEnabled: false,
   };
   private listeners = new Set<(snapshot: MidiPlaybackSnapshot) => void>();
@@ -149,10 +158,11 @@ export class WebMidiEngine {
       const noteEndScore = note.endSec;
       const noteStart = toContextTime(noteStartScore, startScoreSec, startContextSec, tempoRate);
       const noteEnd = toContextTime(noteEndScore, startScoreSec, startContextSec, tempoRate);
+      const shiftedNote = note.noteNumber + this.snapshot.octaveShift * 12;
 
       const oscillator = this.context.createOscillator();
       oscillator.type = oscillatorType;
-      oscillator.frequency.setValueAtTime(midiToFrequency(note.noteNumber), noteStart);
+      oscillator.frequency.setValueAtTime(midiToFrequency(shiftedNote), noteStart);
 
       const gain = this.context.createGain();
       this.applyEnvelope(gain, noteStart, noteEnd, note.velocity);
@@ -336,6 +346,23 @@ export class WebMidiEngine {
     this.emit();
   }
 
+  async setOctaveShift(shift: number) {
+    const nextShift = clampOctaveShift(shift);
+    if (nextShift === this.snapshot.octaveShift) {
+      return;
+    }
+    const wasPlaying = this.snapshot.isPlaying;
+    if (this.context && wasPlaying) {
+      await this.pause();
+    }
+    this.snapshot = { ...this.snapshot, octaveShift: nextShift };
+    if (wasPlaying) {
+      await this.resume();
+      return;
+    }
+    this.emit();
+  }
+
   async setLoopEnabled(enabled: boolean) {
     if (this.snapshot.loopEnabled === enabled) {
       return;
@@ -356,4 +383,3 @@ export class WebMidiEngine {
     return this.snapshot;
   }
 }
-

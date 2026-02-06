@@ -1,6 +1,15 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { SongManifestItem } from "../src/domain/manifest";
 import { downloadService } from "../src/features/download/downloadService";
@@ -10,33 +19,22 @@ import { audioEngine, PlaybackSnapshot } from "../src/features/player/audioEngin
 import { AudioSource, createPlayerStore, getPreferredAudioUrl } from "../src/features/player/playerStore";
 import { MidiTimbre } from "../src/features/player/webMidiEngine";
 import { loadSongs } from "../src/features/songs/loadSongs";
+import { filterSongsByQuery } from "../src/features/songs/searchSongs";
+import {
+  buildYearKeyOptions,
+  ERA_FILTERS,
+  EraFilter,
+  ERA_ORDER,
+  formatYearChipLabel,
+  getEraKey,
+  getEraLabel,
+  getSongYearKey,
+} from "../src/features/songs/yearFilters";
 import { createManifestRepository } from "../src/infra/manifestRepository";
 import { MiniPlayer } from "../src/ui/player/MiniPlayer";
 
 const manifestRepository = createManifestRepository({});
 const playerStore = createPlayerStore();
-const ERA_ORDER = ["m", "t", "s", "h", "r", "a", "other"] as const;
-
-function getEraKey(songId: string): (typeof ERA_ORDER)[number] {
-  const prefix = songId.charAt(0).toLowerCase();
-  if (prefix === "m" || prefix === "t" || prefix === "s" || prefix === "h" || prefix === "r" || prefix === "a") {
-    return prefix;
-  }
-  return "other";
-}
-
-function getEraLabel(key: (typeof ERA_ORDER)[number]) {
-  const labels: Record<(typeof ERA_ORDER)[number], string> = {
-    m: "明治",
-    t: "大正",
-    s: "昭和",
-    h: "平成",
-    r: "令和",
-    a: "その他",
-    other: "未分類",
-  };
-  return labels[key];
-}
 
 function toOfflineAudioEntry(songId: string, entry: OfflineEntry | undefined) {
   if (!entry) {
@@ -64,8 +62,80 @@ export default function SongsScreen() {
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const [currentSongId, setCurrentSongId] = useState<string | null>(null);
   const [lyricsHtml, setLyricsHtml] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(false);
+  const [eraFilter, setEraFilter] = useState<EraFilter>("all");
+  const [yearKeyFilter, setYearKeyFilter] = useState<string | null>(null);
+  const [yearDecadeFilter, setYearDecadeFilter] = useState<number | null>(null);
 
-  const hasSongs = useMemo(() => songs.length > 0, [songs]);
+  const eraFilteredSongs = useMemo(() => {
+    if (eraFilter === "all") {
+      return songs;
+    }
+    return songs.filter((song) => getEraKey(song.id) === eraFilter);
+  }, [songs, eraFilter]);
+
+  const yearKeyOptions = useMemo(() => {
+    return buildYearKeyOptions(eraFilteredSongs, eraFilter);
+  }, [eraFilter, eraFilteredSongs]);
+  const requiresDecadeStep = yearKeyOptions.length > 12;
+  const decadeOptions = useMemo(() => {
+    const starts = new Set<number>();
+    for (const yearKey of yearKeyOptions) {
+      const yearNumber = Number(yearKey.slice(1));
+      if (Number.isNaN(yearNumber)) {
+        continue;
+      }
+      const start = Math.floor((yearNumber - 1) / 10) * 10 + 1;
+      starts.add(start);
+    }
+    return [...starts].sort((left, right) => left - right);
+  }, [yearKeyOptions]);
+  const visibleYearKeyOptions = useMemo(() => {
+    if (!requiresDecadeStep) {
+      return yearKeyOptions;
+    }
+    if (yearDecadeFilter === null) {
+      return [];
+    }
+    return yearKeyOptions.filter((yearKey) => {
+      const yearNumber = Number(yearKey.slice(1));
+      const start = Math.floor((yearNumber - 1) / 10) * 10 + 1;
+      return start === yearDecadeFilter;
+    });
+  }, [requiresDecadeStep, yearDecadeFilter, yearKeyOptions]);
+
+  useEffect(() => {
+    if (!yearKeyFilter) {
+      return;
+    }
+    if (!yearKeyOptions.includes(yearKeyFilter)) {
+      setYearKeyFilter(null);
+    }
+  }, [yearKeyFilter, yearKeyOptions]);
+  useEffect(() => {
+    if (!requiresDecadeStep) {
+      if (yearDecadeFilter !== null) {
+        setYearDecadeFilter(null);
+      }
+      return;
+    }
+    if (yearDecadeFilter !== null && !decadeOptions.includes(yearDecadeFilter)) {
+      setYearDecadeFilter(null);
+    }
+  }, [decadeOptions, requiresDecadeStep, yearDecadeFilter]);
+
+  const textFilteredSongs = useMemo(
+    () => filterSongsByQuery(eraFilteredSongs, searchQuery),
+    [eraFilteredSongs, searchQuery]
+  );
+  const filteredSongs = useMemo(() => {
+    if (!yearKeyFilter) {
+      return textFilteredSongs;
+    }
+    return textFilteredSongs.filter((song) => getSongYearKey(song.id) === yearKeyFilter);
+  }, [textFilteredSongs, yearKeyFilter]);
+  const hasSongs = useMemo(() => filteredSongs.length > 0, [filteredSongs]);
   const currentSong = useMemo(
     () => songs.find((song) => song.id === currentSongId) ?? null,
     [songs, currentSongId]
@@ -76,7 +146,7 @@ export default function SongsScreen() {
   );
   const groupedSongs = useMemo(() => {
     const groups = new Map<(typeof ERA_ORDER)[number], SongManifestItem[]>();
-    for (const song of songs) {
+    for (const song of filteredSongs) {
       const key = getEraKey(song.id);
       if (!groups.has(key)) {
         groups.set(key, []);
@@ -88,7 +158,7 @@ export default function SongsScreen() {
       label: getEraLabel(key),
       songs: groups.get(key) ?? [],
     })).filter((section) => section.songs.length > 0);
-  }, [songs]);
+  }, [filteredSongs]);
 
   useEffect(() => {
     let isMounted = true;
@@ -227,9 +297,131 @@ export default function SongsScreen() {
   const sourceLabel = currentSourceLabel || (currentSource === "piano" ? "Piano" : "Vocal");
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, liquidGlassEnabled && styles.containerGlass]}>
       <Text style={styles.title}>曲一覧</Text>
       <Text style={styles.subtitle}>年度ごとに折り畳みできます</Text>
+      <View style={styles.visualToggleRow}>
+        <Text style={styles.visualToggleLabel}>表示モード</Text>
+        <Pressable
+          style={[styles.visualToggleButton, liquidGlassEnabled && styles.visualToggleButtonActive]}
+          onPress={() => setLiquidGlassEnabled((current) => !current)}
+        >
+          <Text style={[styles.visualToggleButtonText, liquidGlassEnabled && styles.visualToggleButtonTextActive]}>
+            {liquidGlassEnabled ? "Liquid Glass: ON" : "Liquid Glass: OFF"}
+          </Text>
+        </Pressable>
+      </View>
+      <Text style={styles.quickFilterLabel}>年度クイック検索</Text>
+      <View style={styles.chipRow}>
+        {ERA_FILTERS.map((filterKey) => (
+          <Pressable
+            key={filterKey}
+            style={[
+              styles.chip,
+              liquidGlassEnabled && styles.glassSurface,
+              eraFilter === filterKey && styles.chipActive,
+            ]}
+            onPress={() => {
+              setEraFilter(filterKey);
+              setYearKeyFilter(null);
+              setYearDecadeFilter(null);
+            }}
+          >
+            <Text style={[styles.chipText, eraFilter === filterKey && styles.chipTextActive]}>
+              {filterKey === "all" ? "すべて" : getEraLabel(filterKey)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {eraFilter === "all" ? (
+        <Text style={styles.quickFilterHint}>まず元号を選ぶと年度チップが表示されます</Text>
+      ) : yearKeyOptions.length > 0 ? (
+        <>
+          {requiresDecadeStep && (
+            <>
+              <Text style={styles.quickFilterHint}>年代を先に選ぶと年次が絞り込まれます</Text>
+              <View style={styles.chipRow}>
+                <Pressable
+                  style={[
+                    styles.chip,
+                    liquidGlassEnabled && styles.glassSurface,
+                    yearDecadeFilter === null && styles.chipActive,
+                  ]}
+                  onPress={() => {
+                    setYearDecadeFilter(null);
+                    setYearKeyFilter(null);
+                  }}
+                >
+                  <Text style={[styles.chipText, yearDecadeFilter === null && styles.chipTextActive]}>
+                    年代解除
+                  </Text>
+                </Pressable>
+                {decadeOptions.map((start) => {
+                  const end = start + 9;
+                  return (
+                    <Pressable
+                      key={start}
+                      style={[
+                        styles.chip,
+                        liquidGlassEnabled && styles.glassSurface,
+                        yearDecadeFilter === start && styles.chipActive,
+                      ]}
+                      onPress={() => {
+                        setYearDecadeFilter(start);
+                        setYearKeyFilter(null);
+                      }}
+                    >
+                      <Text style={[styles.chipText, yearDecadeFilter === start && styles.chipTextActive]}>
+                        {start}-{end}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {requiresDecadeStep && yearDecadeFilter === null ? (
+            <Text style={styles.quickFilterHint}>年代を選ぶと年次チップが表示されます</Text>
+          ) : (
+            <View style={styles.chipRow}>
+              <Pressable
+                style={[
+                  styles.chip,
+                  liquidGlassEnabled && styles.glassSurface,
+                  !yearKeyFilter && styles.chipActive,
+                ]}
+                onPress={() => setYearKeyFilter(null)}
+              >
+                <Text style={[styles.chipText, !yearKeyFilter && styles.chipTextActive]}>年次解除</Text>
+              </Pressable>
+              {visibleYearKeyOptions.map((key) => (
+                <Pressable
+                  key={key}
+                  style={[
+                    styles.chip,
+                    liquidGlassEnabled && styles.glassSurface,
+                    yearKeyFilter === key && styles.chipActive,
+                  ]}
+                  onPress={() => setYearKeyFilter(key)}
+                >
+                  <Text style={[styles.chipText, yearKeyFilter === key && styles.chipTextActive]}>
+                    {formatYearChipLabel(key)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </>
+      ) : null}
+      <TextInput
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="曲名・年度・作歌作曲者・IDで検索"
+        placeholderTextColor="#94A3B8"
+        style={[styles.searchInput, liquidGlassEnabled && styles.glassSurface]}
+      />
+      <Text style={styles.searchMeta}>検索結果: {filteredSongs.length}曲</Text>
 
       {isLoading && <ActivityIndicator size="large" />}
       {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
@@ -266,7 +458,13 @@ export default function SongsScreen() {
                     const state = getSongDownloadState(item, offlineEntries[item.id] ?? null, activeJob);
 
                     return (
-                      <View key={item.id} style={styles.row}>
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.row,
+                          liquidGlassEnabled && styles.glassSurfaceStrong,
+                        ]}
+                      >
                         <Text style={styles.songTitle}>{item.title}</Text>
                         <Text style={styles.songMeta}>年度: {item.yearLabel ?? "-"}</Text>
                         <Text style={styles.songMeta}>
@@ -360,11 +558,14 @@ export default function SongsScreen() {
         durationSec={playbackSnapshot.durationSec}
         tempoRate={playbackSnapshot.tempoRate}
         timbre={playbackSnapshot.timbre}
+        octaveShift={playbackSnapshot.octaveShift}
         loopEnabled={playbackSnapshot.loopEnabled}
         canSeek={playbackSnapshot.canSeek}
         canLoop={playbackSnapshot.canLoop}
         canControlTempo={playbackSnapshot.canControlTempo}
         canControlTimbre={playbackSnapshot.canControlTimbre}
+        canControlOctave={playbackSnapshot.canControlOctave}
+        liquidGlassEnabled={liquidGlassEnabled}
         isExpanded={isPlayerExpanded}
         onExpand={() => setIsPlayerExpanded(true)}
         onCollapse={() => setIsPlayerExpanded(false)}
@@ -390,6 +591,9 @@ export default function SongsScreen() {
         }}
         onTimbreChange={(timbre: MidiTimbre) => {
           void audioEngine.setTimbre(timbre);
+        }}
+        onOctaveShiftChange={(shift) => {
+          void audioEngine.setOctaveShift(shift);
         }}
         onLoopToggle={(enabled) => {
           void audioEngine.setLoopEnabled(enabled);
@@ -429,11 +633,44 @@ export default function SongsScreen() {
 }
 
 const styles = StyleSheet.create({
+  chip: {
+    backgroundColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  chipActive: {
+    backgroundColor: "#DBEAFE",
+    borderColor: "#2563EB",
+  },
+  chipRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingBottom: 2,
+    paddingRight: 8,
+  },
+  chipText: {
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  chipTextActive: {
+    color: "#1D4ED8",
+    fontWeight: "700",
+  },
   container: {
+    backgroundColor: "#F1F5F9",
     flex: 1,
     gap: 10,
     paddingHorizontal: 20,
     paddingTop: 24,
+  },
+  containerGlass: {
+    backgroundColor: "#DDE8F5",
   },
   empty: {
     color: "#334155",
@@ -526,6 +763,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  quickFilterLabel: {
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  quickFilterHint: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: -2,
+  },
+  searchInput: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    borderWidth: 1,
+    color: "#0F172A",
+    fontSize: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchMeta: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: -2,
+  },
   downloadArea: {
     gap: 6,
   },
@@ -561,5 +823,44 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
+  },
+  visualToggleButton: {
+    backgroundColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  visualToggleButtonActive: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+    borderColor: "rgba(255,255,255,0.75)",
+  },
+  visualToggleButtonText: {
+    color: "#0F172A",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  visualToggleButtonTextActive: {
+    color: "#0B3A67",
+  },
+  visualToggleLabel: {
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  visualToggleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  glassSurface: {
+    backgroundColor: "rgba(255,255,255,0.42)",
+    borderColor: "rgba(255,255,255,0.68)",
+  },
+  glassSurfaceStrong: {
+    backgroundColor: "rgba(255,255,255,0.34)",
+    borderColor: "rgba(255,255,255,0.68)",
   },
 });

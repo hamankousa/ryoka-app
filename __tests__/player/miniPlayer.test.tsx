@@ -15,11 +15,13 @@ function baseProps() {
     durationSec: 100,
     tempoRate: 1,
     timbre: "triangle" as const,
+    octaveShift: 0,
     loopEnabled: false,
     canSeek: true,
     canLoop: true,
     canControlTempo: true,
     canControlTimbre: true,
+    canControlOctave: true,
     yearLabel: "明治四十五年寮歌",
     creditsText: "横山芳介君 作歌 / 赤木顕次君 作曲",
     lyricsHtml: "<p>都ぞ弥生の雲紫に</p>",
@@ -32,6 +34,7 @@ function baseProps() {
     onSeek: jest.fn(),
     onTempoChange: jest.fn(),
     onTimbreChange: jest.fn(),
+    onOctaveShiftChange: jest.fn(),
     onLoopToggle: jest.fn(),
   };
 }
@@ -59,5 +62,13 @@ describe("MiniPlayer", () => {
 
     fireEvent.press(screen.getByText("Piano"));
     expect(props.onSelectSource).toHaveBeenCalledWith("piano");
+  });
+
+  it("changes octave from expanded controls", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded />);
+
+    fireEvent.press(screen.getByTestId("octave-option-1"));
+    expect(props.onOctaveShiftChange).toHaveBeenCalledWith(1);
   });
 });
