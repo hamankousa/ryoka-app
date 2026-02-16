@@ -97,6 +97,7 @@ export function MiniPlayer({
   onLoopToggle,
 }: Props) {
   const [seekWidth, setSeekWidth] = useState(0);
+  const [collapsedSeekWidth, setCollapsedSeekWidth] = useState(0);
   const [tempoWidth, setTempoWidth] = useState(0);
   const tempoRatioRef = useRef(0);
 
@@ -115,6 +116,14 @@ export function MiniPlayer({
       return;
     }
     const next = (event.nativeEvent.locationX / seekWidth) * durationSec;
+    onSeek(next);
+  };
+
+  const handleCollapsedSeekPress = (event: GestureResponderEvent) => {
+    if (!canSeek || collapsedSeekWidth <= 0 || durationSec <= 0) {
+      return;
+    }
+    const next = (event.nativeEvent.locationX / collapsedSeekWidth) * durationSec;
     onSeek(next);
   };
 
@@ -147,20 +156,34 @@ export function MiniPlayer({
           liquidGlassEnabled && styles.glassBar,
         ]}
       >
-        <Pressable style={styles.expandTouch} onPress={onExpand} testID="mini-player-expand-touch">
-          <View style={styles.artworkThumb} />
-          <View style={styles.collapsedTextWrap}>
-            <Text numberOfLines={1} style={styles.collapsedTitle}>
-              {title ?? "未選択"}
-            </Text>
-            <Text numberOfLines={1} style={styles.collapsedSource}>
-              {sourceLabel ?? "-"}
-            </Text>
-          </View>
+        <View style={styles.collapsedTopRow}>
+          <Pressable style={styles.expandTouch} onPress={onExpand} testID="mini-player-expand-touch">
+            <View style={styles.artworkThumb} />
+            <View style={styles.collapsedTextWrap}>
+              <Text numberOfLines={1} style={styles.collapsedTitle}>
+                {title ?? "未選択"}
+              </Text>
+              <Text numberOfLines={1} style={styles.collapsedSource}>
+                {sourceLabel ?? "-"}
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={onPlayPause} style={styles.collapsedPlayButton}>
+            <Text style={styles.collapsedPlayText}>{isPlaying ? "Pause" : "Play"}</Text>
+          </Pressable>
+        </View>
+        <Pressable
+          testID="mini-player-collapsed-seek-track"
+          style={[styles.collapsedSeekTrack, !canSeek && styles.disabled]}
+          onPress={handleCollapsedSeekPress}
+          onLayout={(event) => setCollapsedSeekWidth(event.nativeEvent.layout.width)}
+        >
+          <View style={[styles.collapsedSeekFill, { width: `${ratio * 100}%` }]} />
         </Pressable>
-        <Pressable onPress={onPlayPause} style={styles.collapsedPlayButton}>
-          <Text style={styles.collapsedPlayText}>{isPlaying ? "Pause" : "Play"}</Text>
-        </Pressable>
+        <View style={styles.collapsedTimeRow}>
+          <Text style={styles.collapsedTimeLabel}>{formatTime(positionSec)}</Text>
+          <Text style={styles.collapsedTimeLabel}>{formatTime(durationSec)}</Text>
+        </View>
       </View>
 
       <Modal visible={isExpanded} animationType="slide" transparent onRequestClose={onCollapse}>
@@ -391,6 +414,28 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 12,
   },
+  collapsedSeekFill: {
+    backgroundColor: "#22D3EE",
+    borderRadius: 4,
+    height: 8,
+  },
+  collapsedSeekTrack: {
+    backgroundColor: "#1E293B",
+    borderRadius: 4,
+    height: 8,
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  collapsedTimeLabel: {
+    color: "#94A3B8",
+    fontSize: 10,
+    fontVariant: ["tabular-nums"],
+  },
+  collapsedTimeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
   collapsedTextWrap: {
     flex: 1,
     gap: 2,
@@ -399,6 +444,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
+  },
+  collapsedTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
   },
   controls: {
     alignItems: "center",

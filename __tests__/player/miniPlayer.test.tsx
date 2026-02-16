@@ -71,4 +71,15 @@ describe("MiniPlayer", () => {
     fireEvent.press(screen.getByTestId("octave-option-1"));
     expect(props.onOctaveShiftChange).toHaveBeenCalledWith(1);
   });
+
+  it("seeks from collapsed seek bar", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded={false} />);
+
+    const track = screen.getByTestId("mini-player-collapsed-seek-track");
+    fireEvent(track, "layout", { nativeEvent: { layout: { width: 200 } } });
+    fireEvent.press(track, { nativeEvent: { locationX: 50 } });
+
+    expect(props.onSeek).toHaveBeenCalledWith(25);
+  });
 });
