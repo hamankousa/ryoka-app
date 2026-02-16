@@ -11,6 +11,8 @@ import { ERA_ORDER, getEraKey, getEraLabel } from "../../src/features/songs/year
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 
 const manifestRepository = createManifestRepository({});
+const ICON_VOCAL = "◉";
+const ICON_PIANO = "◆";
 
 export default function ListTabScreen() {
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
@@ -120,7 +122,7 @@ export default function ListTabScreen() {
                           void playSong(song, "vocal");
                         }}
                       >
-                        <Text style={styles.playButtonText}>V</Text>
+                        <Text style={styles.playButtonText}>{ICON_VOCAL}</Text>
                       </Pressable>
                       <Pressable
                         style={[
@@ -134,7 +136,7 @@ export default function ListTabScreen() {
                           void playSong(song, "piano");
                         }}
                       >
-                        <Text style={styles.playButtonText}>P</Text>
+                        <Text style={styles.playButtonText}>{ICON_PIANO}</Text>
                       </Pressable>
                     </View>
                     <View style={styles.links}>

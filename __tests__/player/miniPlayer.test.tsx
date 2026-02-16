@@ -60,7 +60,7 @@ describe("MiniPlayer", () => {
     const props = baseProps();
     render(<MiniPlayer {...props} isExpanded />);
 
-    fireEvent.press(screen.getByText("Piano"));
+    fireEvent.press(screen.getByTestId("mini-player-source-piano"));
     expect(props.onSelectSource).toHaveBeenCalledWith("piano");
   });
 

@@ -29,6 +29,8 @@ import {
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 
 const manifestRepository = createManifestRepository({});
+const ICON_VOCAL = "◉";
+const ICON_PIANO = "◆";
 
 export default function SearchTabScreen() {
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
@@ -291,7 +293,7 @@ export default function SearchTabScreen() {
                           void playSong(song, "vocal");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Vocal</Text>
+                        <Text style={styles.playButtonText}>{ICON_VOCAL}</Text>
                       </Pressable>
                       <Pressable
                         style={[
@@ -305,7 +307,7 @@ export default function SearchTabScreen() {
                           void playSong(song, "piano");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Piano</Text>
+                        <Text style={styles.playButtonText}>{ICON_PIANO}</Text>
                       </Pressable>
                     </View>
                     <View style={styles.links}>

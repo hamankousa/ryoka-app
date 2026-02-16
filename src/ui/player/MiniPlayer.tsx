@@ -56,6 +56,15 @@ const TIMBRE_OPTIONS: Array<{ value: MidiTimbre; label: string }> = [
   { value: "square", label: "矩形波" },
   { value: "sawtooth", label: "ノコギリ波" },
 ];
+const ICON_COLLAPSE = "⌄";
+const ICON_PREV = "⏮";
+const ICON_PLAY = "▶";
+const ICON_PAUSE = "⏸";
+const ICON_NEXT = "⏭";
+const ICON_LOOP_ON = "↻";
+const ICON_LOOP_OFF = "↺";
+const ICON_VOCAL = "◉";
+const ICON_PIANO = "◆";
 
 function formatTime(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
@@ -169,7 +178,7 @@ export function MiniPlayer({
             </View>
           </Pressable>
           <Pressable onPress={onPlayPause} style={styles.collapsedPlayButton}>
-            <Text style={styles.collapsedPlayText}>{isPlaying ? "Pause" : "Play"}</Text>
+            <Text style={styles.collapsedPlayText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
           </Pressable>
         </View>
         <Pressable
@@ -192,8 +201,8 @@ export function MiniPlayer({
           <View style={[styles.sheet, liquidGlassEnabled && styles.glassSheet]}>
             <View style={styles.sheetHeader}>
               <View style={styles.handle} />
-              <Pressable onPress={onCollapse} testID="mini-player-collapse-touch">
-                <Text style={styles.closeText}>閉じる</Text>
+              <Pressable style={styles.closeButton} onPress={onCollapse} testID="mini-player-collapse-touch">
+                <Text style={styles.closeText}>{ICON_COLLAPSE}</Text>
               </Pressable>
             </View>
 
@@ -229,6 +238,7 @@ export function MiniPlayer({
 
             <View style={styles.sourceSwitchRow}>
               <Pressable
+                testID="mini-player-source-vocal"
                 style={[
                   styles.sourceSwitchButton,
                   liquidGlassEnabled && styles.glassOption,
@@ -236,9 +246,10 @@ export function MiniPlayer({
                 ]}
                 onPress={() => onSelectSource("vocal")}
               >
-                <Text style={styles.sourceSwitchText}>Vocal</Text>
+                <Text style={styles.sourceSwitchText}>{ICON_VOCAL}</Text>
               </Pressable>
               <Pressable
+                testID="mini-player-source-piano"
                 style={[
                   styles.sourceSwitchButton,
                   liquidGlassEnabled && styles.glassOption,
@@ -246,7 +257,7 @@ export function MiniPlayer({
                 ]}
                 onPress={() => onSelectSource("piano")}
               >
-                <Text style={styles.sourceSwitchText}>Piano</Text>
+                <Text style={styles.sourceSwitchText}>{ICON_PIANO}</Text>
               </Pressable>
             </View>
 
@@ -268,20 +279,20 @@ export function MiniPlayer({
 
             <View style={styles.controls}>
               <Pressable onPress={onPrev} style={styles.secondaryButton}>
-                <Text style={styles.secondaryText}>Prev</Text>
+                <Text style={styles.secondaryText}>{ICON_PREV}</Text>
               </Pressable>
               <Pressable onPress={onPlayPause} style={styles.primaryButton}>
-                <Text style={styles.primaryText}>{isPlaying ? "Pause" : "Play"}</Text>
+                <Text style={styles.primaryText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
               </Pressable>
               <Pressable onPress={onNext} style={styles.secondaryButton}>
-                <Text style={styles.secondaryText}>Next</Text>
+                <Text style={styles.secondaryText}>{ICON_NEXT}</Text>
               </Pressable>
               {canLoop && (
                 <Pressable
                   onPress={() => onLoopToggle(!loopEnabled)}
                   style={[styles.loopButton, loopEnabled && styles.loopButtonActive]}
                 >
-                  <Text style={styles.loopText}>{loopEnabled ? "ループ:ON" : "ループ:OFF"}</Text>
+                  <Text style={styles.loopText}>{loopEnabled ? ICON_LOOP_ON : ICON_LOOP_OFF}</Text>
                 </Pressable>
               )}
             </View>
@@ -389,6 +400,12 @@ const styles = StyleSheet.create({
   closeText: {
     color: "#1E293B",
     fontWeight: "700",
+    fontSize: 20,
+    lineHeight: 20,
+  },
+  closeButton: {
+    alignItems: "center",
+    minWidth: 28,
   },
   collapsedBar: {
     alignItems: "stretch",
@@ -409,6 +426,7 @@ const styles = StyleSheet.create({
   collapsedPlayText: {
     color: "#FFFFFF",
     fontWeight: "700",
+    fontSize: 15,
   },
   collapsedSource: {
     color: "#94A3B8",
@@ -567,6 +585,7 @@ const styles = StyleSheet.create({
   primaryText: {
     color: "#FFFFFF",
     fontWeight: "700",
+    fontSize: 18,
     textAlign: "center",
   },
   secondaryButton: {
@@ -579,6 +598,7 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: "#0F172A",
     fontWeight: "600",
+    fontSize: 16,
     textAlign: "center",
   },
   sectionLabel: {
@@ -642,6 +662,7 @@ const styles = StyleSheet.create({
   },
   sourceSwitchText: {
     color: "#0F172A",
+    fontSize: 18,
     fontWeight: "700",
   },
   topLyricsPanel: {
