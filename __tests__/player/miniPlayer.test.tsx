@@ -94,6 +94,17 @@ describe("MiniPlayer", () => {
     expect(props.onSeek).toHaveBeenCalledWith(25);
   });
 
+  it("does not seek when touch event has no locationX", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded={false} />);
+
+    const track = screen.getByTestId("mini-player-collapsed-seek-track");
+    fireEvent(track, "layout", { nativeEvent: { layout: { width: 200 } } });
+    fireEvent.press(track, { nativeEvent: {} });
+
+    expect(props.onSeek).not.toHaveBeenCalled();
+  });
+
   it("positions transport controls by center-relative anchors", () => {
     const props = baseProps();
     render(<MiniPlayer {...props} isExpanded />);

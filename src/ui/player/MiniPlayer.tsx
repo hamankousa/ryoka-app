@@ -90,6 +90,22 @@ function formatTime(seconds: number) {
   return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
+function resolveSeekPosition(locationX: number | undefined, trackWidth: number, durationSec: number) {
+  if (
+    typeof locationX !== "number" ||
+    !Number.isFinite(locationX) ||
+    trackWidth <= 0 ||
+    durationSec <= 0
+  ) {
+    return null;
+  }
+  const ratio = Math.min(Math.max(locationX / trackWidth, 0), 1);
+  if (!Number.isFinite(ratio)) {
+    return null;
+  }
+  return ratio * durationSec;
+}
+
 export function MiniPlayer({
   title,
   sourceLabel,
@@ -148,7 +164,10 @@ export function MiniPlayer({
     if (!canSeek || seekWidth <= 0 || durationSec <= 0) {
       return;
     }
-    const next = (event.nativeEvent.locationX / seekWidth) * durationSec;
+    const next = resolveSeekPosition(event.nativeEvent.locationX, seekWidth, durationSec);
+    if (next === null) {
+      return;
+    }
     onSeek(next);
   };
 
@@ -156,7 +175,10 @@ export function MiniPlayer({
     if (!canSeek || collapsedSeekWidth <= 0 || durationSec <= 0) {
       return;
     }
-    const next = (event.nativeEvent.locationX / collapsedSeekWidth) * durationSec;
+    const next = resolveSeekPosition(event.nativeEvent.locationX, collapsedSeekWidth, durationSec);
+    if (next === null) {
+      return;
+    }
     onSeek(next);
   };
 

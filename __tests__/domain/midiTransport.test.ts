@@ -11,6 +11,7 @@ describe("midiTransport", () => {
     expect(clampPosition(-2, 10)).toBe(0);
     expect(clampPosition(4, 10)).toBe(4);
     expect(clampPosition(12, 10)).toBe(10);
+    expect(clampPosition(Number.NaN, 10)).toBe(0);
   });
 
   it("maps score time to context time with tempo", () => {

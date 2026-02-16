@@ -1,5 +1,10 @@
 export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+  const safeMin = Number.isFinite(min) ? min : 0;
+  const safeMax = Number.isFinite(max) ? max : safeMin;
+  const lower = Math.min(safeMin, safeMax);
+  const upper = Math.max(safeMin, safeMax);
+  const safeValue = Number.isFinite(value) ? value : lower;
+  return Math.min(Math.max(safeValue, lower), upper);
 }
 
 export const MIN_TEMPO_RATE = 0.5;

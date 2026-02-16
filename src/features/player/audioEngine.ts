@@ -211,6 +211,9 @@ class AudioEngine {
   }
 
   async seek(positionSec: number) {
+    if (!Number.isFinite(positionSec)) {
+      return;
+    }
     if (this.activeBackend === "web-midi") {
       await this.webMidi.seek(positionSec);
       return;
