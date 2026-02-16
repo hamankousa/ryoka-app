@@ -391,12 +391,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   collapsedBar: {
-    alignItems: "center",
+    alignItems: "stretch",
     backgroundColor: "#0F172A",
     borderTopColor: "#1E293B",
     borderTopWidth: 1,
-    flexDirection: "row",
-    gap: 8,
+    flexDirection: "column",
+    gap: 0,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
@@ -425,6 +425,7 @@ const styles = StyleSheet.create({
     height: 8,
     marginTop: 6,
     overflow: "hidden",
+    width: "100%",
   },
   collapsedTimeLabel: {
     color: "#94A3B8",
@@ -435,6 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 4,
+    width: "100%",
   },
   collapsedTextWrap: {
     flex: 1,
@@ -449,6 +451,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 8,
+    width: "100%",
   },
   controls: {
     alignItems: "center",
