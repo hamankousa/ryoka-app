@@ -36,6 +36,7 @@ type Props = {
   canControlOctave: boolean;
   midiNotes?: MidiPitchGuideNote[];
   liquidGlassEnabled?: boolean;
+  midiGuideLookAheadSec?: number;
   yearLabel?: string;
   creditsText?: string;
   lyricsHtml?: string;
@@ -125,6 +126,7 @@ export function MiniPlayer({
   canControlOctave,
   midiNotes,
   liquidGlassEnabled = false,
+  midiGuideLookAheadSec = 5,
   yearLabel,
   creditsText,
   lyricsHtml,
@@ -330,7 +332,12 @@ export function MiniPlayer({
                 <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
               </View>
               {midiNotes && midiNotes.length > 0 && (
-                <MidiPitchGuide notes={midiNotes} positionSec={positionSec} durationSec={durationSec} />
+                <MidiPitchGuide
+                  notes={midiNotes}
+                  positionSec={positionSec}
+                  durationSec={durationSec}
+                  lookAheadSec={midiGuideLookAheadSec}
+                />
               )}
 
               <View style={styles.controls}>

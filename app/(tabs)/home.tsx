@@ -1,31 +1,67 @@
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const QUICK_ACTIONS = [
   { href: "/search", title: "検索", subtitle: "曲名・作歌作曲・年度から探す", accent: "#0284C7" },
   { href: "/list", title: "一覧", subtitle: "元号ごとに寮歌をたどる", accent: "#2563EB" },
   { href: "/library", title: "ライブラリ", subtitle: "ダウンロード済みの曲を管理", accent: "#0E7490" },
+  { href: "/settings", title: "設定", subtitle: "表示・再生・検索挙動をカスタマイズ", accent: "#0EA5E9" },
 ] as const;
 
 export default function HomeTabScreen() {
   const router = useRouter();
+  const { palette } = useAppSettings();
+  const dynamicStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        actionCard: {
+          backgroundColor: palette.surfaceBackground,
+          borderColor: palette.border,
+        },
+        actionSubtitle: {
+          color: palette.textSecondary,
+        },
+        actionTitle: {
+          color: palette.textPrimary,
+        },
+        container: {
+          backgroundColor: palette.screenBackground,
+        },
+        eyebrow: {
+          color: palette.accent,
+        },
+        hero: {
+          backgroundColor: palette.surfaceBackground,
+          borderColor: palette.border,
+        },
+        subtitle: {
+          color: palette.textSecondary,
+        },
+      }),
+    [palette]
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>KEITEKI RYOKA</Text>
-        <Text style={styles.subtitle}>ホーム・検索・一覧・ライブラリをタブで切り替えできます。</Text>
+    <View style={[styles.container, dynamicStyles.container]}>
+      <View style={[styles.hero, dynamicStyles.hero]}>
+        <Text style={[styles.eyebrow, dynamicStyles.eyebrow]}>KEITEKI RYOKA</Text>
+        <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+          ホームから各機能へ移動できます。設定画面で表示や再生挙動を切り替え可能です。
+        </Text>
       </View>
 
       <View style={styles.actions}>
         {QUICK_ACTIONS.map((action) => (
           <Pressable
             key={action.href}
-            style={[styles.actionCard, { borderColor: action.accent }]}
+            style={[styles.actionCard, dynamicStyles.actionCard, { borderColor: action.accent }]}
             onPress={() => router.push(action.href)}
           >
-            <Text style={styles.actionTitle}>{action.title}</Text>
-            <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+            <Text style={[styles.actionTitle, dynamicStyles.actionTitle]}>{action.title}</Text>
+            <Text style={[styles.actionSubtitle, dynamicStyles.actionSubtitle]}>{action.subtitle}</Text>
           </Pressable>
         ))}
       </View>
@@ -35,7 +71,6 @@ export default function HomeTabScreen() {
 
 const styles = StyleSheet.create({
   actionCard: {
-    backgroundColor: "#111827",
     borderRadius: 14,
     borderWidth: 1,
     gap: 6,
@@ -46,30 +81,24 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionSubtitle: {
-    color: "#94A3B8",
     fontSize: 13,
   },
   actionTitle: {
-    color: "#E2E8F0",
     fontSize: 17,
     fontWeight: "700",
   },
   container: {
-    backgroundColor: "#020617",
     flex: 1,
     gap: 18,
     paddingHorizontal: 18,
     paddingTop: 20,
   },
   eyebrow: {
-    color: "#22D3EE",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.5,
   },
   hero: {
-    backgroundColor: "#0B1220",
-    borderColor: "#1E293B",
     borderRadius: 16,
     borderWidth: 1,
     gap: 8,
@@ -77,7 +106,6 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   subtitle: {
-    color: "#94A3B8",
     fontSize: 14,
     lineHeight: 21,
   },

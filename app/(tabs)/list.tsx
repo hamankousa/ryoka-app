@@ -9,9 +9,11 @@ import { AudioSource, getPreferredAudioUrl } from "../../src/features/player/pla
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { ERA_ORDER, getEraKey, getEraLabel } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 export default function ListTabScreen() {
+  const { palette } = useAppSettings();
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,32 +78,35 @@ export default function ListTabScreen() {
   }, [songs]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>全曲一覧</Text>
-      <Text style={styles.meta}>{songs.length}曲</Text>
+    <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
+      <Text style={[styles.heading, { color: palette.textPrimary }]}>全曲一覧</Text>
+      <Text style={[styles.meta, { color: palette.textSecondary }]}>{songs.length}曲</Text>
 
-      {isLoading && <ActivityIndicator size="large" color="#2563EB" />}
-      {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
-      {playbackError && <Text style={styles.error}>再生エラー: {playbackError}</Text>}
+      {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
+      {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
+      {playbackError && <Text style={[styles.error, { color: palette.danger }]}>再生エラー: {playbackError}</Text>}
 
       {!isLoading && !errorMessage && (
         <ScrollView contentContainerStyle={styles.list}>
           {groupedSongs.map((section) => (
             <View key={section.key} style={styles.section}>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, { backgroundColor: palette.surfaceStrong, color: palette.textPrimary }]}>
                 {section.label} ({section.songs.length})
               </Text>
 
               {section.songs.map((song) => (
-                <View key={song.id} style={styles.row}>
+                <View
+                  key={song.id}
+                  style={[styles.row, { backgroundColor: palette.surfaceBackground, borderBottomColor: palette.border }]}
+                >
                   <View style={styles.main}>
-                    <Text numberOfLines={1} style={styles.title}>
+                    <Text numberOfLines={1} style={[styles.title, { color: palette.textPrimary }]}>
                       {song.title}
                     </Text>
-                    <Text numberOfLines={1} style={styles.sub}>
+                    <Text numberOfLines={1} style={[styles.sub, { color: palette.textSecondary }]}>
                       {song.id.toUpperCase()} / {song.yearLabel ?? "-"}
                     </Text>
-                    <Text numberOfLines={1} style={styles.sub}>
+                    <Text numberOfLines={1} style={[styles.sub, { color: palette.textSecondary }]}>
                       {song.credits?.join(" / ") || "-"}
                     </Text>
                   </View>

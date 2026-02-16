@@ -7,6 +7,7 @@ import { SongManifestItem } from "../../src/domain/manifest";
 import { resolveLyricsSource } from "../../src/features/lyrics/resolveLyricsSource";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 
@@ -15,6 +16,7 @@ function LyricsHtmlOnWeb({ html }: { html: string }) {
 }
 
 export default function LyricsScreen() {
+  const { palette } = useAppSettings();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
   const [inlineHtml, setInlineHtml] = useState<string | null>(null);
@@ -69,23 +71,25 @@ export default function LyricsScreen() {
 
   if (errorMessage) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{errorMessage}</Text>
+      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
       </View>
     );
   }
 
   if (!song || !source) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.loading}>歌詞を読み込み中...</Text>
+      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Text style={[styles.loading, { color: palette.textSecondary }]}>歌詞を読み込み中...</Text>
       </View>
     );
   }
 
   if (source.type === "html") {
     return (
-      <ScrollView contentContainerStyle={styles.webContainer}>
+      <ScrollView
+        contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
+      >
         <LyricsHtmlOnWeb html={source.html} />
       </ScrollView>
     );

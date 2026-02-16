@@ -38,9 +38,11 @@ import {
   getSongYearKey,
 } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
+  const { settings, palette } = useAppSettings();
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
@@ -85,6 +87,12 @@ export default function SearchTabScreen() {
     isFilterCollapsedRef.current = next;
     setIsFilterCollapsed(next);
   };
+
+  useEffect(() => {
+    if (!settings.filterAutoCollapseEnabled) {
+      applyFilterCollapsedState(false);
+    }
+  }, [settings.filterAutoCollapseEnabled]);
 
   useEffect(() => {
     let mounted = true;
@@ -232,6 +240,10 @@ export default function SearchTabScreen() {
 
   const handleResultScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const nextOffsetY = event.nativeEvent.contentOffset.y;
+    if (!settings.filterAutoCollapseEnabled) {
+      lastResultScrollYRef.current = Number.isFinite(nextOffsetY) ? Math.max(0, nextOffsetY) : 0;
+      return;
+    }
     const next = resolveFilterPanelCollapsedOnScroll({
       isCollapsed: isFilterCollapsedRef.current,
       previousOffsetY: lastResultScrollYRef.current,
@@ -242,23 +254,27 @@ export default function SearchTabScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>曲を検索</Text>
-      <Text style={styles.description}>キーワード + 年度クイック検索で絞り込みできます。</Text>
-      <View style={styles.filterPanel}>
+    <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
+      <Text style={[styles.heading, { color: palette.textPrimary }]}>曲を検索</Text>
+      <Text style={[styles.description, { color: palette.textSecondary }]}>
+        キーワード + 年度クイック検索で絞り込みできます。
+      </Text>
+      <View style={[styles.filterPanel, { backgroundColor: palette.surfaceStrong, borderColor: palette.border }]}>
         <View style={styles.filterPanelHeader}>
-          <Text style={styles.filterPanelTitle}>絞り込み</Text>
+          <Text style={[styles.filterPanelTitle, { color: palette.textPrimary }]}>絞り込み</Text>
           <Pressable
             testID="search-filter-toggle"
-            style={styles.filterToggleButton}
+            style={[styles.filterToggleButton, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}
             onPress={() => applyFilterCollapsedState(!isFilterCollapsedRef.current)}
           >
-            <Text style={styles.filterToggleText}>{isFilterCollapsed ? "表示" : "折りたたむ"}</Text>
+            <Text style={[styles.filterToggleText, { color: palette.textPrimary }]}>
+              {isFilterCollapsed ? "表示" : "折りたたむ"}
+            </Text>
           </Pressable>
         </View>
 
         {isFilterCollapsed ? (
-          <Text style={styles.filterSummary}>{filterSummary}</Text>
+          <Text style={[styles.filterSummary, { color: palette.textSecondary }]}>{filterSummary}</Text>
         ) : (
           <>
             <TextInput
@@ -267,11 +283,11 @@ export default function SearchTabScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               placeholder="例: H23 / 北嵐 / 吉野萌"
-              placeholderTextColor="#64748B"
-              style={styles.input}
+              placeholderTextColor={palette.textSecondary}
+              style={[styles.input, { backgroundColor: palette.surfaceBackground, borderColor: palette.border, color: palette.textPrimary }]}
             />
 
-            <Text style={styles.filterLabel}>元号</Text>
+            <Text style={[styles.filterLabel, { color: palette.textPrimary }]}>元号</Text>
             <View style={styles.chipRow}>
               {ERA_FILTERS.map((filterKey) => (
                 <Pressable
@@ -355,25 +371,32 @@ export default function SearchTabScreen() {
         )}
       </View>
 
-      {isLoading && <ActivityIndicator size="large" color="#0F766E" />}
-      {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
-      {playbackError && <Text style={styles.error}>再生エラー: {playbackError}</Text>}
-      {!isLoading && !errorMessage && <Text style={styles.meta}>表示中: {filteredSongs.length}曲</Text>}
+      {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
+      {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
+      {playbackError && <Text style={[styles.error, { color: palette.danger }]}>再生エラー: {playbackError}</Text>}
+      {!isLoading && !errorMessage && (
+        <Text style={[styles.meta, { color: palette.textSecondary }]}>表示中: {filteredSongs.length}曲</Text>
+      )}
 
       {!isLoading && !errorMessage && filteredSongs.length > 0 && (
         <ScrollView contentContainerStyle={styles.list} onScroll={handleResultScroll} scrollEventThrottle={16}>
           {groupedSongs.map((section) => (
             <View key={section.key} style={styles.section}>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
                 {section.label} ({section.songs.length})
               </Text>
               {section.songs.map((song) => (
-                <View key={song.id} style={styles.row}>
-                  <Text style={styles.songTitle}>{song.title}</Text>
-                  <Text style={styles.songMeta}>
+                <View
+                  key={song.id}
+                  style={[styles.row, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}
+                >
+                  <Text style={[styles.songTitle, { color: palette.textPrimary }]}>{song.title}</Text>
+                  <Text style={[styles.songMeta, { color: palette.textSecondary }]}>
                     {song.id.toUpperCase()} / {song.yearLabel ?? "-"}
                   </Text>
-                  <Text style={styles.songMeta}>{song.credits?.join(" / ") || "-"}</Text>
+                  <Text style={[styles.songMeta, { color: palette.textSecondary }]}>
+                    {song.credits?.join(" / ") || "-"}
+                  </Text>
                   <View style={styles.actionRow}>
                     <View style={styles.playButtons}>
                       <Pressable
@@ -422,7 +445,7 @@ export default function SearchTabScreen() {
       )}
 
       {!isLoading && !errorMessage && filteredSongs.length === 0 && (
-        <Text style={styles.empty}>条件に一致する曲がありません。</Text>
+        <Text style={[styles.empty, { color: palette.textSecondary }]}>条件に一致する曲がありません。</Text>
       )}
     </View>
   );

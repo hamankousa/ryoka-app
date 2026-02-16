@@ -15,6 +15,7 @@ import { downloadService } from "../../src/features/download/downloadService";
 import { OfflineEntry } from "../../src/features/offline/offlineRepo";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 
@@ -24,6 +25,7 @@ type OfflineSong = {
 };
 
 export default function LibraryTabScreen() {
+  const { palette } = useAppSettings();
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [offlineEntries, setOfflineEntries] = useState<OfflineEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,34 +85,41 @@ export default function LibraryTabScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>オフラインライブラリ</Text>
-      <Text style={styles.subtitle}>端末に保存した曲をここで管理できます。</Text>
+    <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
+      <Text style={[styles.title, { color: palette.textPrimary }]}>オフラインライブラリ</Text>
+      <Text style={[styles.subtitle, { color: palette.textSecondary }]}>端末に保存した曲をここで管理できます。</Text>
 
       {Platform.OS === "web" && (
-        <View style={styles.notice}>
+        <View style={[styles.notice, { backgroundColor: palette.surfaceStrong, borderColor: palette.border }]}>
           <Text style={styles.noticeText}>Webではダウンロード操作は無効です。モバイル端末で利用してください。</Text>
         </View>
       )}
 
-      {isLoading && <ActivityIndicator size="large" color="#0F766E" />}
-      {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
-      {!isLoading && !errorMessage && <Text style={styles.meta}>保存曲: {offlineSongs.length}曲</Text>}
+      {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
+      {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
+      {!isLoading && !errorMessage && (
+        <Text style={[styles.meta, { color: palette.textSecondary }]}>保存曲: {offlineSongs.length}曲</Text>
+      )}
 
       {!isLoading && !errorMessage && offlineSongs.length === 0 && (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>まだ保存曲がありません</Text>
-          <Text style={styles.emptyDescription}>一覧タブで曲を選んでダウンロードしてください。</Text>
+        <View style={[styles.emptyBox, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
+          <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>まだ保存曲がありません</Text>
+          <Text style={[styles.emptyDescription, { color: palette.textSecondary }]}>
+            一覧タブで曲を選んでダウンロードしてください。
+          </Text>
         </View>
       )}
 
       {!isLoading && !errorMessage && offlineSongs.length > 0 && (
         <ScrollView contentContainerStyle={styles.list}>
           {offlineSongs.map(({ entry, song }) => (
-            <View key={entry.songId} style={styles.row}>
-              <Text style={styles.songTitle}>{song?.title ?? entry.songId}</Text>
-              <Text style={styles.songMeta}>ID: {entry.songId}</Text>
-              <Text style={styles.songMeta}>年度: {song?.yearLabel ?? "-"}</Text>
+            <View
+              key={entry.songId}
+              style={[styles.row, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}
+            >
+              <Text style={[styles.songTitle, { color: palette.textPrimary }]}>{song?.title ?? entry.songId}</Text>
+              <Text style={[styles.songMeta, { color: palette.textSecondary }]}>ID: {entry.songId}</Text>
+              <Text style={[styles.songMeta, { color: palette.textSecondary }]}>年度: {song?.yearLabel ?? "-"}</Text>
               <View style={styles.links}>
                 <Link href={`/lyrics/${entry.songId}`} style={styles.lyricsLink}>
                   歌詞

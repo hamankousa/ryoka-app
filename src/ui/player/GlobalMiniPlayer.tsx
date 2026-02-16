@@ -14,7 +14,12 @@ import {
 import { MidiTimbre } from "../../features/player/webMidiEngine";
 import { MiniPlayer } from "./MiniPlayer";
 
-export function GlobalMiniPlayer() {
+type Props = {
+  liquidGlassEnabled?: boolean;
+  midiGuideLookAheadSec?: number;
+};
+
+export function GlobalMiniPlayer({ liquidGlassEnabled = false, midiGuideLookAheadSec = 5 }: Props) {
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(audioEngine.getSnapshot());
   const [playerState, setPlayerState] = useState(getGlobalPlayerState());
   const [isExpanded, setIsExpanded] = useState(false);
@@ -86,6 +91,8 @@ export function GlobalMiniPlayer() {
       canControlTimbre={playbackSnapshot.canControlTimbre}
       canControlOctave={playbackSnapshot.canControlOctave}
       isExpanded={isExpanded}
+      liquidGlassEnabled={liquidGlassEnabled}
+      midiGuideLookAheadSec={midiGuideLookAheadSec}
       onExpand={() => setIsExpanded(true)}
       onCollapse={() => setIsExpanded(false)}
       onPlayPause={() => {

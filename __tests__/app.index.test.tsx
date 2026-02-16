@@ -7,5 +7,6 @@ describe("HomeTabScreen", () => {
     render(<HomeTabScreen />);
     expect(screen.queryByText("寮歌を、すぐ再生。")).toBeNull();
     expect(screen.getByText("検索")).toBeTruthy();
+    expect(screen.getByText("設定")).toBeTruthy();
   });
 });

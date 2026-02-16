@@ -7,6 +7,7 @@ import { SongManifestItem } from "../../src/domain/manifest";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { resolveScoreSource } from "../../src/features/score/resolveScoreSource";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 
@@ -19,6 +20,7 @@ function ScoreFrameOnWeb({ uri }: { uri: string }) {
 }
 
 export default function ScoreScreen() {
+  const { palette } = useAppSettings();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -55,16 +57,16 @@ export default function ScoreScreen() {
 
   if (errorMessage) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{errorMessage}</Text>
+      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
       </View>
     );
   }
 
   if (!sourceUri) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.loading}>楽譜を読み込み中...</Text>
+      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Text style={[styles.loading, { color: palette.textSecondary }]}>楽譜を読み込み中...</Text>
       </View>
     );
   }

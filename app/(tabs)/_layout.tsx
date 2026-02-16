@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { resolveFloatingTabBarLayout } from "../../src/domain/tabBarLayout";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
 const TAB_ICON: Record<string, string> = {
@@ -16,14 +17,26 @@ const TAB_ICON: Record<string, string> = {
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const floatingLayout = resolveFloatingTabBarLayout(insets.bottom);
+  const { palette, settings } = useAppSettings();
 
   return (
     <Tabs
       tabBar={(props) => (
-        <View style={styles.bottomArea}>
-          <GlobalMiniPlayer />
+        <View style={[styles.bottomArea, { backgroundColor: palette.screenBackground }]}>
+          <GlobalMiniPlayer
+            liquidGlassEnabled={settings.liquidGlassEnabled}
+            midiGuideLookAheadSec={settings.midiGuideLookAheadSec}
+          />
           <View style={[styles.floatingBlock, { paddingBottom: floatingLayout.blockPaddingBottom }]}>
-            <View style={styles.floatingShell}>
+            <View
+              style={[
+                styles.floatingShell,
+                {
+                  backgroundColor: palette.tabBackground,
+                  borderColor: palette.tabBorder,
+                },
+              ]}
+            >
               <BottomTabBar {...props} />
             </View>
           </View>
@@ -31,14 +44,14 @@ export default function TabLayout() {
       )}
       screenOptions={({ route }) => ({
         headerStyle: {
-          backgroundColor: "#0B1220",
+          backgroundColor: palette.surfaceBackground,
         },
-        headerTintColor: "#F8FAFC",
+        headerTintColor: palette.textPrimary,
         headerTitleStyle: {
           fontWeight: "700",
         },
-        tabBarActiveTintColor: "#22D3EE",
-        tabBarInactiveTintColor: "#94A3B8",
+        tabBarActiveTintColor: palette.tabActive,
+        tabBarInactiveTintColor: palette.tabInactive,
         tabBarStyle: {
           backgroundColor: "transparent",
           borderTopWidth: 0,
@@ -81,8 +94,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   floatingShell: {
-    backgroundColor: "#0B1220",
-    borderColor: "#1E293B",
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",

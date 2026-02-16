@@ -7,12 +7,13 @@ type Props = {
   notes: MidiPitchGuideNote[];
   positionSec: number;
   durationSec?: number;
+  lookAheadSec?: number;
 };
 
-export function MidiPitchGuide({ notes, positionSec, durationSec }: Props) {
+export function MidiPitchGuide({ notes, positionSec, durationSec, lookAheadSec }: Props) {
   const frame = useMemo(
-    () => buildMidiPitchGuideFrame(notes, positionSec, { durationSec }),
-    [durationSec, notes, positionSec]
+    () => buildMidiPitchGuideFrame(notes, positionSec, { durationSec, lookAheadSec }),
+    [durationSec, lookAheadSec, notes, positionSec]
   );
   if (notes.length === 0) {
     return null;
