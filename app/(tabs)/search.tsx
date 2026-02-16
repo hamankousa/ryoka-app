@@ -1,15 +1,24 @@
 import { Link } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   View,
 } from "react-native";
 
+import {
+  FILTER_PANEL_ANIMATION_DURATION_MS,
+  resolveFilterPanelCollapsedOnScroll,
+} from "../../src/domain/filterPanelBehavior";
 import { SongManifestItem } from "../../src/domain/manifest";
 import { audioEngine, PlaybackSnapshot } from "../../src/features/player/audioEngine";
 import { playSongWithQueue } from "../../src/features/player/globalPlayer";
@@ -34,6 +43,7 @@ const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -41,6 +51,40 @@ export default function SearchTabScreen() {
   const [eraFilter, setEraFilter] = useState<EraFilter>("all");
   const [yearKeyFilter, setYearKeyFilter] = useState<string | null>(null);
   const [yearDecadeFilter, setYearDecadeFilter] = useState<number | null>(null);
+  const lastResultScrollYRef = useRef(0);
+  const isFilterCollapsedRef = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
+  const animateFilterPanelTransition = () => {
+    LayoutAnimation.configureNext({
+      duration: FILTER_PANEL_ANIMATION_DURATION_MS,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+  };
+
+  const applyFilterCollapsedState = (next: boolean) => {
+    if (next === isFilterCollapsedRef.current) {
+      return;
+    }
+    animateFilterPanelTransition();
+    isFilterCollapsedRef.current = next;
+    setIsFilterCollapsed(next);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -168,98 +212,148 @@ export default function SearchTabScreen() {
     })).filter((section) => section.songs.length > 0);
   }, [filteredSongs]);
 
+  const filterSummary = useMemo(() => {
+    const parts: string[] = [];
+    const query = searchQuery.trim();
+    if (query) {
+      parts.push(`キーワード: ${query}`);
+    }
+    if (eraFilter !== "all") {
+      parts.push(`元号: ${getEraLabel(eraFilter)}`);
+    }
+    if (yearDecadeFilter !== null) {
+      parts.push(`年代: ${yearDecadeFilter}-${yearDecadeFilter + 9}`);
+    }
+    if (yearKeyFilter) {
+      parts.push(`年次: ${formatYearChipLabel(yearKeyFilter)}`);
+    }
+    return parts.length > 0 ? parts.join(" / ") : "絞り込み条件なし";
+  }, [eraFilter, searchQuery, yearDecadeFilter, yearKeyFilter]);
+
+  const handleResultScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextOffsetY = event.nativeEvent.contentOffset.y;
+    const next = resolveFilterPanelCollapsedOnScroll({
+      isCollapsed: isFilterCollapsedRef.current,
+      previousOffsetY: lastResultScrollYRef.current,
+      nextOffsetY,
+    });
+    applyFilterCollapsedState(next);
+    lastResultScrollYRef.current = Number.isFinite(nextOffsetY) ? Math.max(0, nextOffsetY) : 0;
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>曲を検索</Text>
       <Text style={styles.description}>キーワード + 年度クイック検索で絞り込みできます。</Text>
-      <TextInput
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="例: H23 / 北嵐 / 吉野萌"
-        placeholderTextColor="#64748B"
-        style={styles.input}
-      />
-
-      <Text style={styles.filterLabel}>元号</Text>
-      <View style={styles.chipRow}>
-        {ERA_FILTERS.map((filterKey) => (
+      <View style={styles.filterPanel}>
+        <View style={styles.filterPanelHeader}>
+          <Text style={styles.filterPanelTitle}>絞り込み</Text>
           <Pressable
-            key={filterKey}
-            style={[styles.chip, eraFilter === filterKey && styles.chipActive]}
-            onPress={() => {
-              setEraFilter(filterKey);
-              setYearKeyFilter(null);
-              setYearDecadeFilter(null);
-            }}
+            testID="search-filter-toggle"
+            style={styles.filterToggleButton}
+            onPress={() => applyFilterCollapsedState(!isFilterCollapsedRef.current)}
           >
-            <Text style={[styles.chipText, eraFilter === filterKey && styles.chipTextActive]}>
-              {filterKey === "all" ? "すべて" : getEraLabel(filterKey)}
-            </Text>
+            <Text style={styles.filterToggleText}>{isFilterCollapsed ? "表示" : "折りたたむ"}</Text>
           </Pressable>
-        ))}
-      </View>
+        </View>
 
-      {eraFilter !== "all" && yearKeyOptions.length > 0 && (
-        <>
-          {requiresDecadeStep && (
-            <>
-              <Text style={styles.filterHint}>年代を選択</Text>
-              <View style={styles.chipRow}>
+        {isFilterCollapsed ? (
+          <Text style={styles.filterSummary}>{filterSummary}</Text>
+        ) : (
+          <>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="例: H23 / 北嵐 / 吉野萌"
+              placeholderTextColor="#64748B"
+              style={styles.input}
+            />
+
+            <Text style={styles.filterLabel}>元号</Text>
+            <View style={styles.chipRow}>
+              {ERA_FILTERS.map((filterKey) => (
                 <Pressable
-                  style={[styles.chip, yearDecadeFilter === null && styles.chipActive]}
+                  key={filterKey}
+                  style={[styles.chip, eraFilter === filterKey && styles.chipActive]}
                   onPress={() => {
-                    setYearDecadeFilter(null);
+                    setEraFilter(filterKey);
                     setYearKeyFilter(null);
+                    setYearDecadeFilter(null);
                   }}
                 >
-                  <Text style={[styles.chipText, yearDecadeFilter === null && styles.chipTextActive]}>年代解除</Text>
+                  <Text style={[styles.chipText, eraFilter === filterKey && styles.chipTextActive]}>
+                    {filterKey === "all" ? "すべて" : getEraLabel(filterKey)}
+                  </Text>
                 </Pressable>
-                {decadeOptions.map((start) => (
-                  <Pressable
-                    key={start}
-                    style={[styles.chip, yearDecadeFilter === start && styles.chipActive]}
-                    onPress={() => {
-                      setYearDecadeFilter(start);
-                      setYearKeyFilter(null);
-                    }}
-                  >
-                    <Text style={[styles.chipText, yearDecadeFilter === start && styles.chipTextActive]}>
-                      {start}-{start + 9}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
+              ))}
+            </View>
 
-          {(!requiresDecadeStep || yearDecadeFilter !== null) && (
-            <>
-              <Text style={styles.filterHint}>年次を選択</Text>
-              <View style={styles.chipRow}>
-                <Pressable
-                  style={[styles.chip, !yearKeyFilter && styles.chipActive]}
-                  onPress={() => setYearKeyFilter(null)}
-                >
-                  <Text style={[styles.chipText, !yearKeyFilter && styles.chipTextActive]}>年次解除</Text>
-                </Pressable>
-                {visibleYearKeyOptions.map((key) => (
-                  <Pressable
-                    key={key}
-                    style={[styles.chip, yearKeyFilter === key && styles.chipActive]}
-                    onPress={() => setYearKeyFilter(key)}
-                  >
-                    <Text style={[styles.chipText, yearKeyFilter === key && styles.chipTextActive]}>
-                      {formatYearChipLabel(key)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
-        </>
-      )}
+            {eraFilter !== "all" && yearKeyOptions.length > 0 && (
+              <>
+                {requiresDecadeStep && (
+                  <>
+                    <Text style={styles.filterHint}>年代を選択</Text>
+                    <View style={styles.chipRow}>
+                      <Pressable
+                        style={[styles.chip, yearDecadeFilter === null && styles.chipActive]}
+                        onPress={() => {
+                          setYearDecadeFilter(null);
+                          setYearKeyFilter(null);
+                        }}
+                      >
+                        <Text style={[styles.chipText, yearDecadeFilter === null && styles.chipTextActive]}>
+                          年代解除
+                        </Text>
+                      </Pressable>
+                      {decadeOptions.map((start) => (
+                        <Pressable
+                          key={start}
+                          style={[styles.chip, yearDecadeFilter === start && styles.chipActive]}
+                          onPress={() => {
+                            setYearDecadeFilter(start);
+                            setYearKeyFilter(null);
+                          }}
+                        >
+                          <Text style={[styles.chipText, yearDecadeFilter === start && styles.chipTextActive]}>
+                            {start}-{start + 9}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                {(!requiresDecadeStep || yearDecadeFilter !== null) && (
+                  <>
+                    <Text style={styles.filterHint}>年次を選択</Text>
+                    <View style={styles.chipRow}>
+                      <Pressable
+                        style={[styles.chip, !yearKeyFilter && styles.chipActive]}
+                        onPress={() => setYearKeyFilter(null)}
+                      >
+                        <Text style={[styles.chipText, !yearKeyFilter && styles.chipTextActive]}>年次解除</Text>
+                      </Pressable>
+                      {visibleYearKeyOptions.map((key) => (
+                        <Pressable
+                          key={key}
+                          style={[styles.chip, yearKeyFilter === key && styles.chipActive]}
+                          onPress={() => setYearKeyFilter(key)}
+                        >
+                          <Text style={[styles.chipText, yearKeyFilter === key && styles.chipTextActive]}>
+                            {formatYearChipLabel(key)}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </View>
 
       {isLoading && <ActivityIndicator size="large" color="#0F766E" />}
       {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
@@ -267,7 +361,7 @@ export default function SearchTabScreen() {
       {!isLoading && !errorMessage && <Text style={styles.meta}>表示中: {filteredSongs.length}曲</Text>}
 
       {!isLoading && !errorMessage && filteredSongs.length > 0 && (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} onScroll={handleResultScroll} scrollEventThrottle={16}>
           {groupedSongs.map((section) => (
             <View key={section.key} style={styles.section}>
               <Text style={styles.sectionTitle}>
@@ -396,6 +490,41 @@ const styles = StyleSheet.create({
   filterLabel: {
     color: "#334155",
     fontSize: 12,
+    fontWeight: "700",
+  },
+  filterPanel: {
+    backgroundColor: "#EEF2FF",
+    borderColor: "#C7D2FE",
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    padding: 10,
+  },
+  filterPanelHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  filterPanelTitle: {
+    color: "#1E293B",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  filterSummary: {
+    color: "#475569",
+    fontSize: 12,
+  },
+  filterToggleButton: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#CBD5E1",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  filterToggleText: {
+    color: "#334155",
+    fontSize: 11,
     fontWeight: "700",
   },
   heading: {

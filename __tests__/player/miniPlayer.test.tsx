@@ -23,7 +23,7 @@ function baseProps() {
     canControlTempo: true,
     canControlTimbre: true,
     canControlOctave: true,
-    midiNotes: undefined,
+    midiNotes: undefined as Array<{ noteNumber: number; startSec: number; endSec: number }> | undefined,
     yearLabel: "明治四十五年寮歌",
     creditsText: "横山芳介君 作歌 / 赤木顕次君 作曲",
     lyricsHtml: "<p>都ぞ弥生の雲紫に</p>",
