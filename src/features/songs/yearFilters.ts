@@ -63,6 +63,28 @@ export function buildYearKeyOptions(songs: SongManifestItem[], eraFilter: EraFil
   });
 }
 
+export function getYearDecadeStartFromYearKey(yearKey: string): number | null {
+  const yearNumber = Number(yearKey.slice(1));
+  if (!Number.isFinite(yearNumber) || yearNumber <= 0) {
+    return null;
+  }
+  return Math.floor((yearNumber - 1) / 10) * 10 + 1;
+}
+
+export function filterSongsByYearDecade(songs: SongManifestItem[], decadeStart: number | null) {
+  if (decadeStart === null || !Number.isFinite(decadeStart) || decadeStart <= 0) {
+    return songs;
+  }
+
+  return songs.filter((song) => {
+    const yearKey = getSongYearKey(song.id);
+    if (!yearKey) {
+      return false;
+    }
+    return getYearDecadeStartFromYearKey(yearKey) === decadeStart;
+  });
+}
+
 export function formatYearChipLabel(yearKey: string): string {
   const era = yearKey.charAt(0).toLowerCase() as keyof typeof ERA_SHORT_LABELS;
   const value = Number(yearKey.slice(1));

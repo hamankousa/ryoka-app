@@ -1,6 +1,7 @@
 import { SongManifestItem } from "../../src/domain/manifest";
 import {
   buildYearKeyOptions,
+  filterSongsByYearDecade,
   formatYearChipLabel,
   getEraKey,
   getEraLabel,
@@ -50,5 +51,19 @@ describe("yearFilters", () => {
     expect(formatYearChipLabel("m45")).toBe("明45");
     expect(formatYearChipLabel("r6")).toBe("令6");
     expect(formatYearChipLabel("unknown")).toBe("unknown");
+  });
+
+  it("filters songs by selected decade start", () => {
+    const songs = [song("s1"), song("s9"), song("s10"), song("s11"), song("a001")];
+    const result = filterSongsByYearDecade(songs, 1);
+
+    expect(result.map((item) => item.id)).toEqual(["s1", "s9", "s10"]);
+  });
+
+  it("returns original songs when decade filter is null", () => {
+    const songs = [song("h1"), song("h11")];
+    const result = filterSongsByYearDecade(songs, null);
+
+    expect(result).toEqual(songs);
   });
 });

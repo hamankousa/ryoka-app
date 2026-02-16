@@ -21,9 +21,11 @@ import {
   ERA_FILTERS,
   ERA_ORDER,
   EraFilter,
+  filterSongsByYearDecade,
   formatYearChipLabel,
   getEraKey,
   getEraLabel,
+  getYearDecadeStartFromYearKey,
   getSongYearKey,
 } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
@@ -96,12 +98,10 @@ export default function SearchTabScreen() {
   const decadeOptions = useMemo(() => {
     const starts = new Set<number>();
     for (const yearKey of yearKeyOptions) {
-      const yearNumber = Number(yearKey.slice(1));
-      if (Number.isNaN(yearNumber)) {
-        continue;
+      const start = getYearDecadeStartFromYearKey(yearKey);
+      if (start !== null) {
+        starts.add(start);
       }
-      const start = Math.floor((yearNumber - 1) / 10) * 10 + 1;
-      starts.add(start);
     }
     return [...starts].sort((left, right) => left - right);
   }, [yearKeyOptions]);
@@ -113,9 +113,7 @@ export default function SearchTabScreen() {
       return [];
     }
     return yearKeyOptions.filter((yearKey) => {
-      const yearNumber = Number(yearKey.slice(1));
-      const start = Math.floor((yearNumber - 1) / 10) * 10 + 1;
-      return start === yearDecadeFilter;
+      return getYearDecadeStartFromYearKey(yearKey) === yearDecadeFilter;
     });
   }, [requiresDecadeStep, yearDecadeFilter, yearKeyOptions]);
 
@@ -141,12 +139,18 @@ export default function SearchTabScreen() {
   }, [decadeOptions, requiresDecadeStep, yearDecadeFilter]);
 
   const queryFilteredSongs = useMemo(() => filterSongsByQuery(eraFilteredSongs, searchQuery), [eraFilteredSongs, searchQuery]);
-  const filteredSongs = useMemo(() => {
-    if (!yearKeyFilter) {
+  const decadeFilteredSongs = useMemo(() => {
+    if (!requiresDecadeStep || yearDecadeFilter === null) {
       return queryFilteredSongs;
     }
-    return queryFilteredSongs.filter((song) => getSongYearKey(song.id) === yearKeyFilter);
-  }, [queryFilteredSongs, yearKeyFilter]);
+    return filterSongsByYearDecade(queryFilteredSongs, yearDecadeFilter);
+  }, [queryFilteredSongs, requiresDecadeStep, yearDecadeFilter]);
+  const filteredSongs = useMemo(() => {
+    if (!yearKeyFilter) {
+      return decadeFilteredSongs;
+    }
+    return decadeFilteredSongs.filter((song) => getSongYearKey(song.id) === yearKeyFilter);
+  }, [decadeFilteredSongs, yearKeyFilter]);
 
   const groupedSongs = useMemo(() => {
     const groups = new Map<(typeof ERA_ORDER)[number], SongManifestItem[]>();
