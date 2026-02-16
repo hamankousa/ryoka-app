@@ -27,6 +27,7 @@ export type MidiPitchGuideFrame = {
 export type MidiPitchGuideOptions = {
   lookBehindSec?: number;
   lookAheadSec?: number;
+  durationSec?: number;
 };
 
 const DEFAULT_LOOK_BEHIND_SEC = 1;
@@ -47,6 +48,30 @@ function sanitizeWindow(input: number | undefined, fallback: number) {
     return fallback;
   }
   return input;
+}
+
+function sanitizeDuration(durationSec: number | undefined) {
+  if (typeof durationSec !== "number" || !Number.isFinite(durationSec) || durationSec <= 0) {
+    return null;
+  }
+  return durationSec;
+}
+
+function readTrackEndSec(notes: MidiPitchGuideNote[], durationSec: number | undefined) {
+  const safeDuration = sanitizeDuration(durationSec);
+  if (safeDuration !== null) {
+    return safeDuration;
+  }
+  if (notes.length === 0) {
+    return null;
+  }
+  let maxEndSec = 0;
+  for (const note of notes) {
+    if (Number.isFinite(note.endSec)) {
+      maxEndSec = Math.max(maxEndSec, note.endSec);
+    }
+  }
+  return maxEndSec > 0 ? maxEndSec : null;
 }
 
 function readPitchRange(notes: MidiPitchGuideNote[]) {
@@ -72,8 +97,14 @@ export function buildMidiPitchGuideFrame(
   const lookAheadSec = sanitizeWindow(options.lookAheadSec, DEFAULT_LOOK_AHEAD_SEC);
   const windowDurationSec = lookBehindSec + lookAheadSec;
   const safePositionSec = Number.isFinite(positionSec) ? Math.max(0, positionSec) : 0;
-  const windowStartSec = Math.max(0, safePositionSec - lookBehindSec);
-  const windowEndSec = windowStartSec + windowDurationSec;
+  const trackEndSec = readTrackEndSec(notes, options.durationSec);
+  let windowStartSec = Math.max(0, safePositionSec - lookBehindSec);
+  let windowEndSec = windowStartSec + windowDurationSec;
+  if (trackEndSec !== null && windowEndSec > trackEndSec) {
+    windowEndSec = trackEndSec;
+    windowStartSec = Math.max(0, windowEndSec - windowDurationSec);
+  }
+  const visibleWindowDurationSec = Math.max(0.001, windowEndSec - windowStartSec);
   const { minNote, maxNote } = readPitchRange(notes);
   const laneCount = Math.max(1, maxNote - minNote + 1);
   const laneHeightRatio = LANE_HEIGHT_FILL_RATIO / laneCount;
@@ -86,8 +117,8 @@ export function buildMidiPitchGuideFrame(
     }
     const clippedStartSec = Math.max(windowStartSec, note.startSec);
     const clippedEndSec = Math.max(clippedStartSec + 0.001, Math.min(windowEndSec, note.endSec));
-    const leftRatio = clampRatio((clippedStartSec - windowStartSec) / windowDurationSec);
-    const rawWidthRatio = (clippedEndSec - clippedStartSec) / windowDurationSec;
+    const leftRatio = clampRatio((clippedStartSec - windowStartSec) / visibleWindowDurationSec);
+    const rawWidthRatio = (clippedEndSec - clippedStartSec) / visibleWindowDurationSec;
     const widthRatio = clampRatio(Math.max(MIN_VISIBLE_WIDTH_RATIO, rawWidthRatio));
     const noteOffset = maxNote - Math.round(note.noteNumber);
     const topRatio = clampRatio(noteOffset / laneCount + lanePaddingRatio);
@@ -118,6 +149,6 @@ export function buildMidiPitchGuideFrame(
     maxNote,
     windowStartSec,
     windowEndSec,
-    playheadRatio: clampRatio((safePositionSec - windowStartSec) / windowDurationSec),
+    playheadRatio: clampRatio((safePositionSec - windowStartSec) / visibleWindowDurationSec),
   };
 }

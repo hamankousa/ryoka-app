@@ -5,6 +5,7 @@ import {
   computePositionFromContext,
   toContextTime,
 } from "./midiTransport";
+import { MIDI_GUIDE_MAX_FPS, shouldAdvanceFrame } from "../../domain/frameSync";
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 
 export type MidiTimbre = "sine" | "triangle" | "square" | "sawtooth" | "piano";
@@ -62,6 +63,7 @@ export class WebMidiEngine {
   private listeners = new Set<(snapshot: MidiPlaybackSnapshot) => void>();
   private schedule: MidiSchedule | null = null;
   private ticker: number | null = null;
+  private tickerLastTimestampMs: number | null = null;
   private playStartContextSec = 0;
   private playStartScoreSec = 0;
 
@@ -77,9 +79,10 @@ export class WebMidiEngine {
     }
     this.timers = [];
     if (this.ticker !== null) {
-      window.clearInterval(this.ticker);
+      window.cancelAnimationFrame(this.ticker);
       this.ticker = null;
     }
+    this.tickerLastTimestampMs = null;
   }
 
   private stopAllVoices() {
@@ -102,15 +105,14 @@ export class WebMidiEngine {
     return this.context;
   }
 
-  private startTicker() {
-    if (this.ticker !== null || !this.context) {
+  private runTickerFrame = (timestampMs: number) => {
+    this.ticker = null;
+    if (!this.snapshot.isPlaying || !this.context) {
+      this.tickerLastTimestampMs = null;
       return;
     }
 
-    this.ticker = window.setInterval(() => {
-      if (!this.snapshot.isPlaying || !this.context) {
-        return;
-      }
+    if (shouldAdvanceFrame(this.tickerLastTimestampMs, timestampMs, MIDI_GUIDE_MAX_FPS)) {
       const positionSec = computePositionFromContext(
         this.playStartScoreSec,
         this.playStartContextSec,
@@ -120,7 +122,18 @@ export class WebMidiEngine {
       );
       this.snapshot = { ...this.snapshot, positionSec };
       this.emit();
-    }, 120);
+      this.tickerLastTimestampMs = timestampMs;
+    }
+
+    this.ticker = window.requestAnimationFrame(this.runTickerFrame);
+  };
+
+  private startTicker() {
+    if (this.ticker !== null || !this.context) {
+      return;
+    }
+    this.tickerLastTimestampMs = null;
+    this.ticker = window.requestAnimationFrame(this.runTickerFrame);
   }
 
   private applyEnvelope(gain: GainNode, noteStart: number, noteEnd: number, velocity: number) {

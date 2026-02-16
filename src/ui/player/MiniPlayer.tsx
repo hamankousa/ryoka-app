@@ -330,7 +330,7 @@ export function MiniPlayer({
                 <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
               </View>
               {midiNotes && midiNotes.length > 0 && (
-                <MidiPitchGuide notes={midiNotes} positionSec={positionSec} />
+                <MidiPitchGuide notes={midiNotes} positionSec={positionSec} durationSec={durationSec} />
               )}
 
               <View style={styles.controls}>

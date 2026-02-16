@@ -39,4 +39,19 @@ describe("buildMidiPitchGuideFrame", () => {
     expect(frame.maxNote).toBe(60);
     expect(frame.playheadRatio).toBeCloseTo(1 / 6, 5);
   });
+
+  it("clamps guide window near song end to avoid end-of-track acceleration", () => {
+    const frame = buildMidiPitchGuideFrame(
+      [
+        { noteNumber: 62, startSec: 9.5, endSec: 11.5 },
+        { noteNumber: 65, startSec: 11.2, endSec: 12 },
+      ],
+      11.5,
+      { durationSec: 12 }
+    );
+
+    expect(frame.windowStartSec).toBeCloseTo(6, 5);
+    expect(frame.windowEndSec).toBeCloseTo(12, 5);
+    expect(frame.playheadRatio).toBeCloseTo(11 / 12, 5);
+  });
 });

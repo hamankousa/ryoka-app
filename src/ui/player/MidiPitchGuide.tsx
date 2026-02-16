@@ -6,10 +6,14 @@ import { buildMidiPitchGuideFrame, MidiPitchGuideNote } from "../../domain/midiP
 type Props = {
   notes: MidiPitchGuideNote[];
   positionSec: number;
+  durationSec?: number;
 };
 
-export function MidiPitchGuide({ notes, positionSec }: Props) {
-  const frame = useMemo(() => buildMidiPitchGuideFrame(notes, positionSec), [notes, positionSec]);
+export function MidiPitchGuide({ notes, positionSec, durationSec }: Props) {
+  const frame = useMemo(
+    () => buildMidiPitchGuideFrame(notes, positionSec, { durationSec }),
+    [durationSec, notes, positionSec]
+  );
   if (notes.length === 0) {
     return null;
   }
