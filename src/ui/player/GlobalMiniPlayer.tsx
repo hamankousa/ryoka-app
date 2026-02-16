@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 
 import { audioEngine, PlaybackSnapshot } from "../../features/player/audioEngine";
 import {
+  cycleLoopModeGlobal,
   getGlobalPlayerState,
   nextGlobal,
   playPauseGlobal,
   prevGlobal,
   selectSourceGlobal,
   subscribeGlobalPlayer,
+  toggleShuffleGlobal,
 } from "../../features/player/globalPlayer";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
 import { MiniPlayer } from "./MiniPlayer";
@@ -68,6 +70,8 @@ export function GlobalMiniPlayer() {
     <MiniPlayer
       title={playerState.currentSong?.title}
       sourceLabel={playerState.sourceLabel}
+      loopMode={playerState.loopMode}
+      shuffleEnabled={playerState.shuffleEnabled}
       isPlaying={playbackSnapshot.isPlaying}
       positionSec={playbackSnapshot.positionSec}
       durationSec={playbackSnapshot.durationSec}
@@ -100,6 +104,12 @@ export function GlobalMiniPlayer() {
       }}
       onLoopToggle={(enabled) => {
         void audioEngine.setLoopEnabled(enabled);
+      }}
+      onCycleLoopMode={() => {
+        cycleLoopModeGlobal();
+      }}
+      onToggleShuffle={() => {
+        toggleShuffleGlobal();
       }}
       onPrev={() => {
         void prevGlobal();

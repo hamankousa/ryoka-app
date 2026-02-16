@@ -5,10 +5,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
 const TAB_ICON: Record<string, string> = {
-  home: "●",
-  search: "●",
-  list: "●",
-  library: "●",
+  home: "⌂",
+  search: "⌕",
+  list: "☰",
+  library: "▥",
 };
 
 export default function TabLayout() {
@@ -42,7 +42,7 @@ export default function TabLayout() {
           fontWeight: "700",
         },
         tabBarIcon: ({ color }) => (
-          <Text style={{ color, fontSize: 10, fontWeight: "900" }}>{TAB_ICON[route.name] ?? "●"}</Text>
+          <Text style={{ color, fontSize: 15, fontWeight: "900" }}>{TAB_ICON[route.name] ?? "•"}</Text>
         ),
       })}
     >

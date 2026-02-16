@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 import { MiniPlayer } from "../../src/ui/player/MiniPlayer";
 
@@ -36,6 +37,8 @@ function baseProps() {
     onTimbreChange: jest.fn(),
     onOctaveShiftChange: jest.fn(),
     onLoopToggle: jest.fn(),
+    onToggleShuffle: jest.fn(),
+    shuffleEnabled: false,
   };
 }
 
@@ -81,5 +84,39 @@ describe("MiniPlayer", () => {
     fireEvent.press(track, { nativeEvent: { locationX: 50 } });
 
     expect(props.onSeek).toHaveBeenCalledWith(25);
+  });
+
+  it("positions transport controls by center-relative anchors", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded />);
+
+    const shuffleStyle = StyleSheet.flatten(screen.getByTestId("mini-player-shuffle").props.style);
+    const prevStyle = StyleSheet.flatten(screen.getByTestId("mini-player-prev").props.style);
+    const playStyle = StyleSheet.flatten(screen.getByTestId("mini-player-play-pause").props.style);
+    const nextStyle = StyleSheet.flatten(screen.getByTestId("mini-player-next").props.style);
+    const loopStyle = StyleSheet.flatten(screen.getByTestId("mini-player-loop").props.style);
+
+    expect(playStyle.left).toBe("50%");
+    expect(playStyle.marginLeft).toBe(-36);
+
+    expect(prevStyle.left).toBe("50%");
+    expect(nextStyle.left).toBe("50%");
+    const prevCenterOffset = prevStyle.marginLeft + 26;
+    const nextCenterOffset = nextStyle.marginLeft + 26;
+    expect(prevCenterOffset).toBe(-nextCenterOffset);
+
+    expect(shuffleStyle.left).toBe("50%");
+    expect(shuffleStyle.marginLeft).toBeLessThan(prevStyle.marginLeft);
+
+    expect(loopStyle.left).toBe("50%");
+    expect(loopStyle.marginLeft).toBeGreaterThan(nextStyle.marginLeft);
+  });
+
+  it("toggles shuffle from expanded controls", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded />);
+
+    fireEvent.press(screen.getByTestId("mini-player-shuffle"));
+    expect(props.onToggleShuffle).toHaveBeenCalledTimes(1);
   });
 });

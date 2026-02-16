@@ -18,6 +18,8 @@ import { MidiTimbre } from "../../features/player/webMidiEngine";
 type Props = {
   title?: string;
   sourceLabel?: string;
+  loopMode?: "off" | "playlist" | "track";
+  shuffleEnabled?: boolean;
   isPlaying: boolean;
   positionSec: number;
   durationSec: number;
@@ -46,6 +48,8 @@ type Props = {
   onTimbreChange: (timbre: MidiTimbre) => void;
   onOctaveShiftChange: (shift: number) => void;
   onLoopToggle: (enabled: boolean) => void;
+  onCycleLoopMode?: () => void;
+  onToggleShuffle?: () => void;
 };
 
 const TEMPO_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
@@ -61,10 +65,20 @@ const ICON_PREV = "⏮";
 const ICON_PLAY = "▶";
 const ICON_PAUSE = "⏸";
 const ICON_NEXT = "⏭";
-const ICON_LOOP_ON = "↻";
-const ICON_LOOP_OFF = "↺";
-const ICON_VOCAL = "◉";
-const ICON_PIANO = "◆";
+const ICON_LOOP = "↻↺";
+const ICON_SHUFFLE = "⇄";
+const CONTROL_CENTER_OFFSETS = {
+  shuffle: -148,
+  prev: -84,
+  play: 0,
+  next: 84,
+  loop: 148,
+} as const;
+const CONTROL_WIDTH = {
+  secondary: 52,
+  primary: 72,
+  loop: 52,
+} as const;
 
 function formatTime(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
@@ -76,6 +90,8 @@ function formatTime(seconds: number) {
 export function MiniPlayer({
   title,
   sourceLabel,
+  loopMode,
+  shuffleEnabled = false,
   isPlaying,
   positionSec,
   durationSec,
@@ -104,6 +120,8 @@ export function MiniPlayer({
   onTimbreChange,
   onOctaveShiftChange,
   onLoopToggle,
+  onCycleLoopMode,
+  onToggleShuffle,
 }: Props) {
   const [seekWidth, setSeekWidth] = useState(0);
   const [collapsedSeekWidth, setCollapsedSeekWidth] = useState(0);
@@ -119,6 +137,8 @@ export function MiniPlayer({
 
   const tempoRatio = useMemo(() => tempoRateToRatio(tempoRate), [tempoRate]);
   tempoRatioRef.current = tempoRatio;
+  const effectiveLoopMode = loopMode ?? (loopEnabled ? "track" : "off");
+  const loopLabel = effectiveLoopMode === "track" ? `${ICON_LOOP}1` : ICON_LOOP;
 
   const handleSeekPress = (event: GestureResponderEvent) => {
     if (!canSeek || seekWidth <= 0 || durationSec <= 0) {
@@ -246,7 +266,7 @@ export function MiniPlayer({
                 ]}
                 onPress={() => onSelectSource("vocal")}
               >
-                <Text style={styles.sourceSwitchText}>{ICON_VOCAL}</Text>
+                <Text style={styles.sourceSwitchText}>Vocal</Text>
               </Pressable>
               <Pressable
                 testID="mini-player-source-piano"
@@ -257,7 +277,7 @@ export function MiniPlayer({
                 ]}
                 onPress={() => onSelectSource("piano")}
               >
-                <Text style={styles.sourceSwitchText}>{ICON_PIANO}</Text>
+                <Text style={styles.sourceSwitchText}>Piano</Text>
               </Pressable>
             </View>
 
@@ -278,21 +298,69 @@ export function MiniPlayer({
             </View>
 
             <View style={styles.controls}>
-              <Pressable onPress={onPrev} style={styles.secondaryButton}>
+              <Pressable
+                testID="mini-player-shuffle"
+                onPress={onToggleShuffle}
+                style={[
+                  styles.secondaryButton,
+                  styles.controlFromCenter,
+                  { marginLeft: CONTROL_CENTER_OFFSETS.shuffle - CONTROL_WIDTH.secondary / 2 },
+                  shuffleEnabled && styles.shuffleButtonActive,
+                ]}
+              >
+                <Text style={styles.secondaryText}>{ICON_SHUFFLE}</Text>
+              </Pressable>
+              <Pressable
+                testID="mini-player-prev"
+                onPress={onPrev}
+                style={[
+                  styles.secondaryButton,
+                  styles.controlFromCenter,
+                  { marginLeft: CONTROL_CENTER_OFFSETS.prev - CONTROL_WIDTH.secondary / 2 },
+                ]}
+              >
                 <Text style={styles.secondaryText}>{ICON_PREV}</Text>
               </Pressable>
-              <Pressable onPress={onPlayPause} style={styles.primaryButton}>
+              <Pressable
+                testID="mini-player-play-pause"
+                onPress={onPlayPause}
+                style={[
+                  styles.primaryButton,
+                  styles.controlFromCenter,
+                  { marginLeft: CONTROL_CENTER_OFFSETS.play - CONTROL_WIDTH.primary / 2 },
+                ]}
+              >
                 <Text style={styles.primaryText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
               </Pressable>
-              <Pressable onPress={onNext} style={styles.secondaryButton}>
+              <Pressable
+                testID="mini-player-next"
+                onPress={onNext}
+                style={[
+                  styles.secondaryButton,
+                  styles.controlFromCenter,
+                  { marginLeft: CONTROL_CENTER_OFFSETS.next - CONTROL_WIDTH.secondary / 2 },
+                ]}
+              >
                 <Text style={styles.secondaryText}>{ICON_NEXT}</Text>
               </Pressable>
               {canLoop && (
                 <Pressable
-                  onPress={() => onLoopToggle(!loopEnabled)}
-                  style={[styles.loopButton, loopEnabled && styles.loopButtonActive]}
+                  testID="mini-player-loop"
+                  onPress={() => {
+                    if (onCycleLoopMode) {
+                      onCycleLoopMode();
+                      return;
+                    }
+                    onLoopToggle(!loopEnabled);
+                  }}
+                  style={[
+                    styles.loopButton,
+                    styles.controlFromCenter,
+                    { marginLeft: CONTROL_CENTER_OFFSETS.loop - CONTROL_WIDTH.loop / 2 },
+                    effectiveLoopMode !== "off" && styles.loopButtonActive,
+                  ]}
                 >
-                  <Text style={styles.loopText}>{loopEnabled ? ICON_LOOP_ON : ICON_LOOP_OFF}</Text>
+                  <Text style={styles.loopText}>{loopLabel}</Text>
                 </Pressable>
               )}
             </View>
@@ -472,11 +540,17 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   controls: {
-    alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    height: 52,
+    position: "relative",
     marginTop: 8,
+  },
+  controlFromCenter: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+    bottom: 0,
+    left: "50%",
+    top: 0,
   },
   disabled: {
     opacity: 0.5,
@@ -518,16 +592,18 @@ const styles = StyleSheet.create({
   loopButton: {
     backgroundColor: "#E2E8F0",
     borderRadius: 10,
+    minWidth: 52,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   loopButtonActive: {
     backgroundColor: "#DBEAFE",
   },
   loopText: {
     color: "#0F172A",
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "700",
+    textAlign: "center",
   },
   lyricsHint: {
     color: "#64748B",
@@ -591,9 +667,14 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: "#E2E8F0",
     borderRadius: 10,
-    minWidth: 64,
-    paddingHorizontal: 12,
+    minWidth: 52,
+    paddingHorizontal: 10,
     paddingVertical: 9,
+  },
+  shuffleButtonActive: {
+    backgroundColor: "#DBEAFE",
+    borderColor: "#2563EB",
+    borderWidth: 1,
   },
   secondaryText: {
     color: "#0F172A",
@@ -662,7 +743,7 @@ const styles = StyleSheet.create({
   },
   sourceSwitchText: {
     color: "#0F172A",
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
   },
   topLyricsPanel: {

@@ -2,24 +2,36 @@ import { SongManifestItem } from "../../domain/manifest";
 import { audioEngine } from "./audioEngine";
 import { AudioSource, createPlayerStore, getPreferredAudioUrl } from "./playerStore";
 
+export type LoopMode = "off" | "playlist" | "track";
+
 type GlobalPlayerState = {
   currentSong: SongManifestItem | null;
   source: AudioSource;
   sourceLabel: string;
+  loopMode: LoopMode;
+  shuffleEnabled: boolean;
 };
 
 const playerStore = createPlayerStore();
+const PREV_RESTART_THRESHOLD_SEC = 5;
 let state: GlobalPlayerState = {
   currentSong: null,
   source: "vocal",
   sourceLabel: "Vocal",
+  loopMode: "off",
+  shuffleEnabled: false,
 };
 const listeners = new Set<(snapshot: GlobalPlayerState) => void>();
+let lastAudioSnapshot = audioEngine.getSnapshot();
 
 function emit() {
   for (const listener of listeners) {
     listener(state);
   }
+}
+
+function syncAudioLoopFlag() {
+  void audioEngine.setLoopEnabled(state.loopMode === "track");
 }
 
 function syncStateFromStore() {
@@ -56,6 +68,47 @@ async function playCurrentFromStore(toggleIfSame: boolean) {
   syncStateFromStore();
 }
 
+async function handleTrackFinished() {
+  if (state.loopMode !== "playlist") {
+    return;
+  }
+  const store = playerStore.getState();
+  if (!store.currentSong || store.queue.length === 0) {
+    return;
+  }
+  if (state.shuffleEnabled && store.queue.length > 1) {
+    const currentIndex = store.currentIndex;
+    let randomIndex = currentIndex;
+    while (randomIndex === currentIndex) {
+      randomIndex = Math.floor(Math.random() * store.queue.length);
+    }
+    playerStore.setQueue(store.queue, randomIndex);
+    playerStore.setSource(store.source);
+  } else if (store.currentIndex < store.queue.length - 1) {
+    playerStore.next();
+  } else {
+    playerStore.setQueue(store.queue, 0);
+    playerStore.setSource(store.source);
+  }
+  await playCurrentFromStore(false);
+}
+
+audioEngine.subscribe((snapshot) => {
+  const didFinishCurrentTrack =
+    lastAudioSnapshot.isPlaying &&
+    !snapshot.isPlaying &&
+    snapshot.durationSec > 0 &&
+    snapshot.positionSec >= snapshot.durationSec - 0.05 &&
+    snapshot.uri &&
+    snapshot.uri === lastAudioSnapshot.uri;
+
+  lastAudioSnapshot = snapshot;
+
+  if (didFinishCurrentTrack) {
+    void handleTrackFinished();
+  }
+});
+
 export function getGlobalPlayerState() {
   return state;
 }
@@ -66,6 +119,16 @@ export function subscribeGlobalPlayer(listener: (snapshot: GlobalPlayerState) =>
   return () => {
     listeners.delete(listener);
   };
+}
+
+export function cycleLoopModeGlobal() {
+  state = {
+    ...state,
+    loopMode:
+      state.loopMode === "off" ? "playlist" : state.loopMode === "playlist" ? "track" : "off",
+  };
+  syncAudioLoopFlag();
+  emit();
 }
 
 export async function playSongWithQueue(
@@ -97,11 +160,28 @@ export async function playPauseGlobal() {
 }
 
 export async function prevGlobal() {
+  const snapshot = audioEngine.getSnapshot();
+  if (snapshot.positionSec >= PREV_RESTART_THRESHOLD_SEC) {
+    await audioEngine.seek(0);
+    return;
+  }
   playerStore.prev();
   await playCurrentFromStore(false);
 }
 
 export async function nextGlobal() {
+  const store = playerStore.getState();
+  if (state.shuffleEnabled && store.queue.length > 1) {
+    const currentIndex = store.currentIndex;
+    let randomIndex = currentIndex;
+    while (randomIndex === currentIndex) {
+      randomIndex = Math.floor(Math.random() * store.queue.length);
+    }
+    playerStore.setQueue(store.queue, randomIndex);
+    playerStore.setSource(store.source);
+    await playCurrentFromStore(false);
+    return;
+  }
   playerStore.next();
   await playCurrentFromStore(false);
 }
@@ -109,4 +189,12 @@ export async function nextGlobal() {
 export async function selectSourceGlobal(source: AudioSource) {
   playerStore.setSource(source);
   await playCurrentFromStore(false);
+}
+
+export function toggleShuffleGlobal() {
+  state = {
+    ...state,
+    shuffleEnabled: !state.shuffleEnabled,
+  };
+  emit();
 }
