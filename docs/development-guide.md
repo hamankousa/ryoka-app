@@ -2,110 +2,98 @@
 
 ## 1. 目的
 
-- 寮歌の `音源(vocal: mp3 / piano: midi)`, `歌詞(html)`, `楽譜(pdf)` を閲覧/再生できる
-- コンテンツ更新は `manifest.json` 経由でアプリ更新なし反映
-- iOS/Android は曲単位オフライン保存、Web はストリーミング中心
+- 寮歌の `音源（vocal mp3 / piano midi）` `歌詞（html）` `楽譜（pdf）` を再生・閲覧できる
+- `manifest.json` 更新でアプリ更新なしに曲データを反映できる
+- iOS/Android は曲単位のオフライン保存に対応する
 
-## 2. 技術スタック
+## 2. 現在の画面構成（2026-02-16）
+
+- ルート: `app/_layout.tsx`
+- タブ: `app/(tabs)`
+- タブ種別: `home` `search` `list` `library`
+- 全タブ共通プレイヤー: `src/ui/player/GlobalMiniPlayer.tsx`
+- 歌詞画面: `app/lyrics/[songId].tsx`
+- 楽譜画面: `app/score/[songId].tsx`
+
+## 3. 技術スタック
 
 - `Expo SDK 54`
 - `TypeScript`
 - `expo-router`
-- 音声: `expo-av`
-- WebのMIDI再生: `WebAudio + midi-file`（専用実装）
-- 歌詞表示: `react-native-webview`（iOS/Android）
+- 音声再生: `expo-av`
+- Web MIDI再生: `WebAudio + midi-file`（`webMidiEngine`）
+- 歌詞/楽譜表示: `react-native-webview`（モバイル） + WebのDOM描画
 - 保存: `expo-file-system` + `@react-native-async-storage/async-storage`
 - テスト: `jest-expo` + `@testing-library/react-native`
 
-## 3. 開発環境セットアップ
+## 4. ローカル起動
 
-### 必須
-
-- `Node.js LTS`
-- `npm`
-- `Git`
-- Android 開発時: `Android Studio`
-- iOS 開発時: `Xcode`（macOS）
-
-### 初回コマンド
+1. 親フォルダでコンテンツ配信
 
 ```bash
-npm install
-npm run test
-npm run start
+npx serve . -l 8787 --cors
 ```
 
-## 4. TDDルール
+2. `ryoka-app` でアプリ起動
 
-1. 仕様を1つ決める（例: manifest の相対URL結合）
-2. 失敗するテストを書く
-3. 最小実装でテストを通す
-4. リファクタして重複を消す
-5. 次の仕様へ進む
+```bash
+$env:EXPO_PUBLIC_MANIFEST_BASE_URL="http://localhost:8787/ryoka-content/"
+npm run web
+```
 
-## 5. 実装順（v1）
+3. テスト実行
 
-1. `manifest` 取得 + キャッシュ + 曲一覧表示
-2. `expo-av` でストリーミング再生 + ミニプレイヤー
-3. 歌詞表示（WebView / Web DOM）
-4. 楽譜PDF表示
-5. OfflineRepo（保存/削除/参照）
-6. DownloadManager（同時2件・進捗・リトライ）
-7. 更新検知（updatedAt/hash）
-8. 機内モードを含むE2E確認
+```bash
+npm run test
+```
 
-## 6. ディレクトリ方針
+## 5. TDDルール
+
+1. 仕様を1つに絞る
+2. 失敗するテストを先に書く
+3. 最小実装でグリーンにする
+4. リファクタで重複を削る
+5. UI仕様はレイアウト計算までテストで固定する
+
+## 6. 主要仕様（プレイヤー）
+
+- ミニプレイヤーは全タブで共通状態を持つ
+- 最小化バーに `曲名/音源種別/再生ボタン/シークバー/時間` を表示
+- 展開プレイヤーは中央基準で以下を配置する
+- `シャッフル` `戻る` `再生/一時停止` `進む` `ループ`
+- ループモードは `off -> playlist -> track -> off` で循環
+- `戻る` は再生位置が5秒以上なら曲頭へ戻す（5秒未満は前曲）
+
+## 7. 主要仕様（検索/一覧/ライブラリ）
+
+- 検索タブはキーワード検索 + 年度クイック検索（元号/年代/年次）
+- 一覧タブは高密度リスト表示を優先（モバイル情報量最大化）
+- ライブラリタブは保存曲一覧と削除操作を提供（Webは削除不可）
+
+## 8. ディレクトリ方針
 
 ```txt
 app/                 # 画面ルート（expo-router）
-src/domain/          # 純粋関数（最優先でテスト）
+src/domain/          # 純粋関数
 src/infra/           # I/O（network/files/storage）
-src/features/        # ユースケース単位
-__tests__/           # 画面/振る舞いテスト
-docs/                # 手順書
+src/features/        # ユースケース
+src/ui/              # UIコンポーネント
+__tests__/           # 振る舞いテスト
+docs/                # ドキュメント
 ```
 
-## 7. 受け入れ基準チェック
+## 9. 受け入れ基準（現行）
 
-- 新規インストール後に曲一覧が表示される
-- 1曲をストリーミング再生できる
-- iOS/Android で1曲をDLし機内モードで再生/歌詞/PDF閲覧できる
-- 更新あり表示と再DLができる
-- 削除後はローカル参照が消えてリモート参照に戻る
+- 全タブで同一の再生状態を共有できる
+- 検索タブ/一覧タブから再生開始し、展開プレイヤーを開ける
+- 最小化プレイヤーでシークバーが見え、タップでシークできる
+- ループ・シャッフル操作が表示状態に反映される
+- iOS/Android でオフライン曲の再生/歌詞/楽譜が利用できる
 
-## 8. 開発運用ドキュメント
+## 10. 関連ドキュメント
 
-- 開発ルール正本: `AGENTS.md`
-- Git運用ルール: `docs/git-rules.md`
 - 重要判断ログ: `docs/decision-log.md`
-
-## 9. サンプルデータ運用
-
-- 曲一覧（manifest）は `../ryoka-content/manifest.json` を使う
-- 実リソース（audio/lyrics/score）も `../ryoka-content/` を使う
-- ローカル配信は親フォルダで `npx serve . -l 8787`
-- `BASE_URL` は `http://<your-ip>:8787/ryoka-content/` を設定する
-- 実機確認時はPCと端末を同一ネットワークに接続する
-
-## 10. 音源ソース方針
-
-- `audio` は `vocal` と `piano` に分離して管理する
-- `manifest` の `audio` は `vocalMp3Url`（mp3）と `pianoMp3Url`（midi）を持つ
-- 代替ボーカルがある曲は `audio.vocalAlternates[]`（`id/label/mp3Url`）を持てる
-- `defaultSource` は初期再生の選択値として使う（現状は `vocal`）
-- Webで `piano` が `.mid/.midi` の場合は `expo-av` ではなく専用MIDIエンジンで再生する
-- MIDI再生中はミニプレイヤーで `seek` / `tempo(0.5x-3.0x)` / `timbre` / `loop` を操作できる
-
-## 11. 更新検知方針
-
-- まず `updatedAt` 比較で更新判定する
-- 追加で `hash/size` がある場合は差分検知に使う
-- いずれかに差分があれば「更新あり」を表示する
-
-## 12. 手動起動マニュアル
-
-- 別ターミナルでの起動手順は `docs/local-run-manual.md` を参照する
-
-## 13. E2E確認
-
-- 実機の機内モードを含む確認は `docs/e2e-checklist.md` を参照する
+- セットアップ/変更ログ: `docs/setup-log.md`
+- 手動起動: `docs/local-run-manual.md`
+- E2Eチェック: `docs/e2e-checklist.md`
+- Git運用: `docs/git-rules.md`

@@ -10,7 +10,7 @@
 npx serve . -l 8787 --cors
 ```
 
-確認URL:
+確認URL（直接開けること）:
 
 - `http://localhost:8787/ryoka-content/manifest.json`
 - `http://localhost:8787/ryoka-content/audio/vocal/m45.mp3`
@@ -24,6 +24,13 @@ npx serve . -l 8787 --cors
 ```bash
 $env:EXPO_PUBLIC_MANIFEST_BASE_URL="http://localhost:8787/ryoka-content/"
 npm run web
+```
+
+代替（`web` スクリプトを使わない場合）:
+
+```bash
+$env:EXPO_PUBLIC_MANIFEST_BASE_URL="http://localhost:8787/ryoka-content/"
+npx expo start --web
 ```
 
 ブラウザ:
@@ -45,5 +52,14 @@ npm run web
   `ryoka-content` 内に `audio/lyrics/score` があるか確認
 - 曲一覧が空:
   `EXPO_PUBLIC_MANIFEST_BASE_URL` が正しいか確認
+- `npm run web` が失敗:
+  `ryoka-app/package.json` の `scripts.web` を確認、なければ `npx expo start --web` を使う
 - ポート競合:
   `8787` or `19006` を他プロセスが使っていないか確認
+
+## 起動後の最低確認
+
+1. タブが `ホーム / 検索 / 一覧 / ライブラリ` の4つ表示される
+2. 下部ミニプレイヤーが表示される
+3. 検索または一覧から `Vocal/Piano` 再生できる
+4. 曲再生中にタブ切替しても再生状態が維持される
