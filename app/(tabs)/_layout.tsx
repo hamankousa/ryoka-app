@@ -1,7 +1,9 @@
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { resolveFloatingTabBarLayout } from "../../src/domain/tabBarLayout";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
 const TAB_ICON: Record<string, string> = {
@@ -12,12 +14,19 @@ const TAB_ICON: Record<string, string> = {
 };
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const floatingLayout = resolveFloatingTabBarLayout(insets.bottom);
+
   return (
     <Tabs
       tabBar={(props) => (
         <View style={styles.bottomArea}>
           <GlobalMiniPlayer />
-          <BottomTabBar {...props} />
+          <View style={[styles.floatingBlock, { paddingBottom: floatingLayout.blockPaddingBottom }]}>
+            <View style={styles.floatingShell}>
+              <BottomTabBar {...props} />
+            </View>
+          </View>
         </View>
       )}
       screenOptions={({ route }) => ({
@@ -31,18 +40,27 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#22D3EE",
         tabBarInactiveTintColor: "#94A3B8",
         tabBarStyle: {
-          backgroundColor: "#0B1220",
-          borderTopColor: "#1E293B",
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: "transparent",
+          borderTopWidth: 0,
+          elevation: 0,
+          height: floatingLayout.tabHeight,
+          shadowOpacity: 0,
+        },
+        tabBarAllowFontScaling: false,
+        tabBarItemStyle: {
+          paddingBottom: floatingLayout.itemPaddingBottom,
+          paddingTop: 3,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
+          lineHeight: floatingLayout.labelLineHeight,
+          marginBottom: 1,
         },
         tabBarIcon: ({ color }) => (
-          <Text style={{ color, fontSize: 15, fontWeight: "900" }}>{TAB_ICON[route.name] ?? "•"}</Text>
+          <Text allowFontScaling={false} style={{ color, fontSize: 15, fontWeight: "900" }}>
+            {TAB_ICON[route.name] ?? "•"}
+          </Text>
         ),
       })}
     >
@@ -57,5 +75,21 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   bottomArea: {
     backgroundColor: "#0B1220",
+  },
+  floatingBlock: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  floatingShell: {
+    backgroundColor: "#0B1220",
+    borderColor: "#1E293B",
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowColor: "#020617",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.26,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });

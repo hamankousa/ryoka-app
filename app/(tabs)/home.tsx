@@ -14,7 +14,6 @@ export default function HomeTabScreen() {
     <View style={styles.container}>
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>KEITEKI RYOKA</Text>
-        <Text style={styles.title}>寮歌を、すぐ再生。</Text>
         <Text style={styles.subtitle}>ホーム・検索・一覧・ライブラリをタブで切り替えできます。</Text>
       </View>
 
@@ -81,10 +80,5 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 14,
     lineHeight: 21,
-  },
-  title: {
-    color: "#F8FAFC",
-    fontSize: 26,
-    fontWeight: "800",
   },
 });
