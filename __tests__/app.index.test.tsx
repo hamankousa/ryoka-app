@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react-native";
 
-import SongsScreen from "../app/index";
+import HomeTabScreen from "../app/(tabs)/home";
 
-describe("SongsScreen", () => {
-  it("shows app title", () => {
-    render(<SongsScreen />);
-    expect(screen.getByText("恵迪寮 寮歌プレイヤー v1")).toBeTruthy();
+describe("HomeTabScreen", () => {
+  it("shows home heading", () => {
+    render(<HomeTabScreen />);
+    expect(screen.getByText("寮歌を、すぐ再生。")).toBeTruthy();
   });
 });
