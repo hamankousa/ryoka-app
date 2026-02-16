@@ -1,0 +1,64 @@
+<mxfile host="app.diagrams.net" modified="2026-02-16T00:00:00.000Z" agent="Codex GPT-5" version="24.7.17">
+  <diagram id="ryoka-concept-architecture" name="Concept">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="利用者&#xa;(iOS / Android / Web)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="40" y="290" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="App UI (expo-router)&#xa;- app/index&#xa;- app/songs&#xa;- app/lyrics/[songId]&#xa;- app/score/[songId]&#xa;- MiniPlayer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="280" y="220" width="280" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="Feature Layer&#xa;- loadSongs / search / yearFilters&#xa;- playerStore&#xa;- resolveLyricsSource / resolveScoreSource&#xa;- downloadService / downloadState / updateDetection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="610" y="210" width="360" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="Domain + Infra&#xa;- parseManifest (zod)&#xa;- createManifestRepository&#xa;- createOfflineRepo&#xa;- DownloadManager&#xa;- audioEngine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="1020" y="210" width="320" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="Content Source (ryoka-content)&#xa;- manifest.json&#xa;- audio/vocal/*.mp3&#xa;- audio/piano/*.midi&#xa;- lyrics/*.html&#xa;- score/*.pdf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="1020" y="30" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="Local Storage (端末)&#xa;- AsyncStorage: manifest/offline entries&#xa;- FileSystem: audio/lyrics/score cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="1020" y="500" width="320" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="expo-av backend&#xa;(mp3 playback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce5ff;strokeColor=#5b9bd5;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="1390" y="240" width="210" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="Web MIDI backend&#xa;(WebAudio + midi-file)&#xa;tempo / timbre / seek / loop" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce5ff;strokeColor=#5b9bd5;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="1390" y="350" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="操作" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="2" target="3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="UIイベント / 表示更新" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="3" target="4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="ユースケース呼び出し" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="4" target="5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="manifest / assets 取得" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="5" target="6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="DL保存 / 参照" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="5" target="7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="再生制御 (mp3)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="5" target="8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="再生制御 (midi)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" parent="1" source="5" target="9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="ストリーミング取得" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;" parent="1" source="8" target="6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="MIDI取得" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;" parent="1" source="9" target="6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="オフライン参照" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;" parent="1" source="7" target="3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

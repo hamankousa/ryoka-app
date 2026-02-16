@@ -26,3 +26,8 @@ npm run start
 - `expo-router` の最小ルーティングを作成済み
 - TDD開始用に Jest + Testing Library を設定済み
 - 初回の画面テストを1本追加済み
+
+## 現時点の概念設計図
+
+- draw.io: [`docs/architecture/concept-architecture.drawio`](docs/architecture/concept-architecture.drawio)
+- 対象範囲: `app`（画面）/ `features`（ユースケース）/ `domain+infra`（データ・I/O）/ `ryoka-content`（配信元）/ 端末ローカル保存 / 再生バックエンド（`expo-av`, Web MIDI）
