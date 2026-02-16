@@ -12,8 +12,10 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 
+import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { MAX_TEMPO_RATE, MIN_TEMPO_RATE, ratioToTempoRate, tempoRateToRatio } from "../../features/player/midiTransport";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
+import { MidiPitchGuide } from "./MidiPitchGuide";
 
 type Props = {
   title?: string;
@@ -32,6 +34,7 @@ type Props = {
   canControlTempo: boolean;
   canControlTimbre: boolean;
   canControlOctave: boolean;
+  midiNotes?: MidiPitchGuideNote[];
   liquidGlassEnabled?: boolean;
   yearLabel?: string;
   creditsText?: string;
@@ -104,6 +107,7 @@ export function MiniPlayer({
   canControlTempo,
   canControlTimbre,
   canControlOctave,
+  midiNotes,
   liquidGlassEnabled = false,
   yearLabel,
   creditsText,
@@ -225,228 +229,238 @@ export function MiniPlayer({
                 <Text style={styles.closeText}>{ICON_COLLAPSE}</Text>
               </Pressable>
             </View>
-
-            <View style={styles.hero}>
-              <View
-                style={[
-                  styles.topLyricsPanel,
-                  liquidGlassEnabled && styles.glassPanel,
-                ]}
-              >
-                <Text style={styles.sectionTitle}>歌詞</Text>
-                {Platform.OS === "web" ? (
-                  <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
-                    {/* eslint-disable-next-line react/no-danger */}
-                    <div
-                      style={{ fontSize: 13, lineHeight: 1.6, color: "#1E293B" }}
-                      dangerouslySetInnerHTML={{ __html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
-                    />
-                  </ScrollView>
-                ) : (
-                  <WebView
-                    originWhitelist={["*"]}
-                    source={{ html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
-                    style={styles.lyricsWebView}
-                  />
-                )}
-              </View>
-              <Text style={styles.title}>{title ?? "未選択"}</Text>
-              <Text style={styles.source}>{sourceLabel ?? "-"}</Text>
-              <Text style={styles.metaLine}>年度: {yearLabel ?? "-"}</Text>
-              <Text style={styles.metaLine}>作歌・作曲: {creditsText ?? "-"}</Text>
-            </View>
-
-            <View style={styles.sourceSwitchRow}>
-              <Pressable
-                testID="mini-player-source-vocal"
-                style={[
-                  styles.sourceSwitchButton,
-                  liquidGlassEnabled && styles.glassOption,
-                  sourceLabel?.startsWith("Vocal") && styles.sourceSwitchActive,
-                ]}
-                onPress={() => onSelectSource("vocal")}
-              >
-                <Text style={styles.sourceSwitchText}>Vocal</Text>
-              </Pressable>
-              <Pressable
-                testID="mini-player-source-piano"
-                style={[
-                  styles.sourceSwitchButton,
-                  liquidGlassEnabled && styles.glassOption,
-                  sourceLabel === "Piano" && styles.sourceSwitchActive,
-                ]}
-                onPress={() => onSelectSource("piano")}
-              >
-                <Text style={styles.sourceSwitchText}>Piano</Text>
-              </Pressable>
-            </View>
-
-            <Pressable
-              style={[
-                styles.seekTrack,
-                liquidGlassEnabled && styles.glassTrack,
-                !canSeek && styles.disabled,
-              ]}
-              onPress={handleSeekPress}
-              onLayout={(event) => setSeekWidth(event.nativeEvent.layout.width)}
+            <ScrollView
+              testID="mini-player-expanded-scroll"
+              style={styles.expandedScroll}
+              contentContainerStyle={styles.expandedScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
             >
-              <View style={[styles.seekFill, { width: `${ratio * 100}%` }]} />
-            </Pressable>
-            <View style={styles.timeRow}>
-              <Text style={styles.timeLabel}>{formatTime(positionSec)}</Text>
-              <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
-            </View>
 
-            <View style={styles.controls}>
-              <Pressable
-                testID="mini-player-shuffle"
-                onPress={onToggleShuffle}
-                style={[
-                  styles.secondaryButton,
-                  styles.controlFromCenter,
-                  { marginLeft: CONTROL_CENTER_OFFSETS.shuffle - CONTROL_WIDTH.secondary / 2 },
-                  shuffleEnabled && styles.shuffleButtonActive,
-                ]}
-              >
-                <Text style={styles.secondaryText}>{ICON_SHUFFLE}</Text>
-              </Pressable>
-              <Pressable
-                testID="mini-player-prev"
-                onPress={onPrev}
-                style={[
-                  styles.secondaryButton,
-                  styles.controlFromCenter,
-                  { marginLeft: CONTROL_CENTER_OFFSETS.prev - CONTROL_WIDTH.secondary / 2 },
-                ]}
-              >
-                <Text style={styles.secondaryText}>{ICON_PREV}</Text>
-              </Pressable>
-              <Pressable
-                testID="mini-player-play-pause"
-                onPress={onPlayPause}
-                style={[
-                  styles.primaryButton,
-                  styles.controlFromCenter,
-                  { marginLeft: CONTROL_CENTER_OFFSETS.play - CONTROL_WIDTH.primary / 2 },
-                ]}
-              >
-                <Text style={styles.primaryText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
-              </Pressable>
-              <Pressable
-                testID="mini-player-next"
-                onPress={onNext}
-                style={[
-                  styles.secondaryButton,
-                  styles.controlFromCenter,
-                  { marginLeft: CONTROL_CENTER_OFFSETS.next - CONTROL_WIDTH.secondary / 2 },
-                ]}
-              >
-                <Text style={styles.secondaryText}>{ICON_NEXT}</Text>
-              </Pressable>
-              {canLoop && (
-                <Pressable
-                  testID="mini-player-loop"
-                  onPress={() => {
-                    if (onCycleLoopMode) {
-                      onCycleLoopMode();
-                      return;
-                    }
-                    onLoopToggle(!loopEnabled);
-                  }}
+              <View style={styles.hero}>
+                <View
                   style={[
-                    styles.loopButton,
-                    styles.controlFromCenter,
-                    { marginLeft: CONTROL_CENTER_OFFSETS.loop - CONTROL_WIDTH.loop / 2 },
-                    effectiveLoopMode !== "off" && styles.loopButtonActive,
+                    styles.topLyricsPanel,
+                    liquidGlassEnabled && styles.glassPanel,
                   ]}
                 >
-                  <Text style={styles.loopText}>{loopLabel}</Text>
-                </Pressable>
-              )}
-            </View>
+                  <Text style={styles.sectionTitle}>歌詞</Text>
+                  {Platform.OS === "web" ? (
+                    <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
+                      {/* eslint-disable-next-line react/no-danger */}
+                      <div
+                        style={{ fontSize: 13, lineHeight: 1.6, color: "#1E293B" }}
+                        dangerouslySetInnerHTML={{ __html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
+                      />
+                    </ScrollView>
+                  ) : (
+                    <WebView
+                      originWhitelist={["*"]}
+                      source={{ html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
+                      style={styles.lyricsWebView}
+                    />
+                  )}
+                </View>
+                <Text style={styles.title}>{title ?? "未選択"}</Text>
+                <Text style={styles.source}>{sourceLabel ?? "-"}</Text>
+                <Text style={styles.metaLine}>年度: {yearLabel ?? "-"}</Text>
+                <Text style={styles.metaLine}>作歌・作曲: {creditsText ?? "-"}</Text>
+              </View>
 
-            {canControlTempo && (
-              <View style={styles.tempoSection}>
-                <Text style={styles.sectionLabel}>
-                  テンポ: {tempoRate.toFixed(2)}x（{MIN_TEMPO_RATE}x - {MAX_TEMPO_RATE}x）
-                </Text>
-                <View
-                  style={styles.tempoTrack}
-                  onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}
+              <View style={styles.sourceSwitchRow}>
+                <Pressable
+                  testID="mini-player-source-vocal"
+                  style={[
+                    styles.sourceSwitchButton,
+                    liquidGlassEnabled && styles.glassOption,
+                    sourceLabel?.startsWith("Vocal") && styles.sourceSwitchActive,
+                  ]}
+                  onPress={() => onSelectSource("vocal")}
                 >
-                  <View style={[styles.tempoFill, { width: `${tempoRatio * 100}%` }]} />
-                  <View
-                    style={[styles.tempoThumbWrap, { left: `${tempoRatio * 100}%` }]}
-                    pointerEvents={canControlTempo ? "auto" : "none"}
-                    {...tempoThumbResponder.panHandlers}
+                  <Text style={styles.sourceSwitchText}>Vocal</Text>
+                </Pressable>
+                <Pressable
+                  testID="mini-player-source-piano"
+                  style={[
+                    styles.sourceSwitchButton,
+                    liquidGlassEnabled && styles.glassOption,
+                    sourceLabel === "Piano" && styles.sourceSwitchActive,
+                  ]}
+                  onPress={() => onSelectSource("piano")}
+                >
+                  <Text style={styles.sourceSwitchText}>Piano</Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                style={[
+                  styles.seekTrack,
+                  liquidGlassEnabled && styles.glassTrack,
+                  !canSeek && styles.disabled,
+                ]}
+                onPress={handleSeekPress}
+                onLayout={(event) => setSeekWidth(event.nativeEvent.layout.width)}
+              >
+                <View style={[styles.seekFill, { width: `${ratio * 100}%` }]} />
+              </Pressable>
+              <View style={styles.timeRow}>
+                <Text style={styles.timeLabel}>{formatTime(positionSec)}</Text>
+                <Text style={styles.timeLabel}>{formatTime(durationSec)}</Text>
+              </View>
+              {midiNotes && midiNotes.length > 0 && (
+                <MidiPitchGuide notes={midiNotes} positionSec={positionSec} />
+              )}
+
+              <View style={styles.controls}>
+                <Pressable
+                  testID="mini-player-shuffle"
+                  onPress={onToggleShuffle}
+                  style={[
+                    styles.secondaryButton,
+                    styles.controlFromCenter,
+                    { marginLeft: CONTROL_CENTER_OFFSETS.shuffle - CONTROL_WIDTH.secondary / 2 },
+                    shuffleEnabled && styles.shuffleButtonActive,
+                  ]}
+                >
+                  <Text style={styles.secondaryText}>{ICON_SHUFFLE}</Text>
+                </Pressable>
+                <Pressable
+                  testID="mini-player-prev"
+                  onPress={onPrev}
+                  style={[
+                    styles.secondaryButton,
+                    styles.controlFromCenter,
+                    { marginLeft: CONTROL_CENTER_OFFSETS.prev - CONTROL_WIDTH.secondary / 2 },
+                  ]}
+                >
+                  <Text style={styles.secondaryText}>{ICON_PREV}</Text>
+                </Pressable>
+                <Pressable
+                  testID="mini-player-play-pause"
+                  onPress={onPlayPause}
+                  style={[
+                    styles.primaryButton,
+                    styles.controlFromCenter,
+                    { marginLeft: CONTROL_CENTER_OFFSETS.play - CONTROL_WIDTH.primary / 2 },
+                  ]}
+                >
+                  <Text style={styles.primaryText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
+                </Pressable>
+                <Pressable
+                  testID="mini-player-next"
+                  onPress={onNext}
+                  style={[
+                    styles.secondaryButton,
+                    styles.controlFromCenter,
+                    { marginLeft: CONTROL_CENTER_OFFSETS.next - CONTROL_WIDTH.secondary / 2 },
+                  ]}
+                >
+                  <Text style={styles.secondaryText}>{ICON_NEXT}</Text>
+                </Pressable>
+                {canLoop && (
+                  <Pressable
+                    testID="mini-player-loop"
+                    onPress={() => {
+                      if (onCycleLoopMode) {
+                        onCycleLoopMode();
+                        return;
+                      }
+                      onLoopToggle(!loopEnabled);
+                    }}
+                    style={[
+                      styles.loopButton,
+                      styles.controlFromCenter,
+                      { marginLeft: CONTROL_CENTER_OFFSETS.loop - CONTROL_WIDTH.loop / 2 },
+                      effectiveLoopMode !== "off" && styles.loopButtonActive,
+                    ]}
                   >
-                    <View style={styles.tempoThumb} />
+                    <Text style={styles.loopText}>{loopLabel}</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {canControlTempo && (
+                <View style={styles.tempoSection}>
+                  <Text style={styles.sectionLabel}>
+                    テンポ: {tempoRate.toFixed(2)}x（{MIN_TEMPO_RATE}x - {MAX_TEMPO_RATE}x）
+                  </Text>
+                  <View
+                    style={styles.tempoTrack}
+                    onLayout={(event) => setTempoWidth(event.nativeEvent.layout.width)}
+                  >
+                    <View style={[styles.tempoFill, { width: `${tempoRatio * 100}%` }]} />
+                    <View
+                      style={[styles.tempoThumbWrap, { left: `${tempoRatio * 100}%` }]}
+                      pointerEvents={canControlTempo ? "auto" : "none"}
+                      {...tempoThumbResponder.panHandlers}
+                    >
+                      <View style={styles.tempoThumb} />
+                    </View>
+                  </View>
+                  <Text style={styles.tempoHint}>つまみを左右にドラッグして調整</Text>
+                  <View style={styles.optionRow}>
+                    {TEMPO_OPTIONS.map((tempo) => (
+                      <Pressable
+                        key={tempo}
+                        onPress={() => onTempoChange(tempo)}
+                        style={[
+                          styles.optionButton,
+                          liquidGlassEnabled && styles.glassOption,
+                          Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive,
+                        ]}
+                      >
+                        <Text style={styles.optionText}>{tempo}x</Text>
+                      </Pressable>
+                    ))}
                   </View>
                 </View>
-                <Text style={styles.tempoHint}>つまみを左右にドラッグして調整</Text>
-                <View style={styles.optionRow}>
-                  {TEMPO_OPTIONS.map((tempo) => (
-                    <Pressable
-                      key={tempo}
-                      onPress={() => onTempoChange(tempo)}
-                      style={[
-                        styles.optionButton,
-                        liquidGlassEnabled && styles.glassOption,
-                        Math.abs(tempoRate - tempo) < 0.001 && styles.optionActive,
-                      ]}
-                    >
-                      <Text style={styles.optionText}>{tempo}x</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            )}
+              )}
 
-            {canControlTimbre && (
-              <View style={styles.tempoSection}>
-                <Text style={styles.sectionLabel}>音色</Text>
-                <View style={styles.optionRow}>
-                  {TIMBRE_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => onTimbreChange(option.value)}
-                      style={[
-                        styles.optionButton,
-                        liquidGlassEnabled && styles.glassOption,
-                        timbre === option.value && styles.optionActive,
-                      ]}
-                    >
-                      <Text style={styles.optionText}>{option.label}</Text>
-                    </Pressable>
-                  ))}
+              {canControlTimbre && (
+                <View style={styles.tempoSection}>
+                  <Text style={styles.sectionLabel}>音色</Text>
+                  <View style={styles.optionRow}>
+                    {TIMBRE_OPTIONS.map((option) => (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => onTimbreChange(option.value)}
+                        style={[
+                          styles.optionButton,
+                          liquidGlassEnabled && styles.glassOption,
+                          timbre === option.value && styles.optionActive,
+                        ]}
+                      >
+                        <Text style={styles.optionText}>{option.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
 
-            {canControlOctave && (
-              <View style={styles.tempoSection}>
-                <Text style={styles.sectionLabel}>
-                  オクターブ: {octaveShift > 0 ? `+${octaveShift}` : octaveShift}
-                </Text>
-                <View style={styles.optionRow}>
-                  {[-2, -1, 0, 1, 2].map((value) => (
-                    <Pressable
-                      key={value}
-                      testID={`octave-option-${value}`}
-                      onPress={() => onOctaveShiftChange(value)}
-                      style={[
-                        styles.optionButton,
-                        liquidGlassEnabled && styles.glassOption,
-                        octaveShift === value && styles.optionActive,
-                      ]}
-                    >
-                      <Text style={styles.optionText}>{value > 0 ? `+${value}` : value}</Text>
-                    </Pressable>
-                  ))}
+              {canControlOctave && (
+                <View style={styles.tempoSection}>
+                  <Text style={styles.sectionLabel}>
+                    オクターブ: {octaveShift > 0 ? `+${octaveShift}` : octaveShift}
+                  </Text>
+                  <View style={styles.optionRow}>
+                    {[-2, -1, 0, 1, 2].map((value) => (
+                      <Pressable
+                        key={value}
+                        testID={`octave-option-${value}`}
+                        onPress={() => onOctaveShiftChange(value)}
+                        style={[
+                          styles.optionButton,
+                          liquidGlassEnabled && styles.glassOption,
+                          octaveShift === value && styles.optionActive,
+                        ]}
+                      >
+                        <Text style={styles.optionText}>{value > 0 ? `+${value}` : value}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
-
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -554,6 +568,13 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  expandedScroll: {
+    flex: 1,
+    marginTop: 8,
+  },
+  expandedScrollContent: {
+    paddingBottom: 24,
   },
   expandTouch: {
     alignItems: "center",

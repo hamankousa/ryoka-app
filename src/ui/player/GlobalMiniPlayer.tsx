@@ -75,6 +75,7 @@ export function GlobalMiniPlayer() {
       isPlaying={playbackSnapshot.isPlaying}
       positionSec={playbackSnapshot.positionSec}
       durationSec={playbackSnapshot.durationSec}
+      midiNotes={playbackSnapshot.midiNotes}
       tempoRate={playbackSnapshot.tempoRate}
       timbre={playbackSnapshot.timbre}
       octaveShift={playbackSnapshot.octaveShift}

@@ -5,6 +5,7 @@ import {
   computePositionFromContext,
   toContextTime,
 } from "./midiTransport";
+import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 
 export type MidiTimbre = "sine" | "triangle" | "square" | "sawtooth" | "piano";
 export const MIN_OCTAVE_SHIFT = -2;
@@ -16,6 +17,7 @@ export type MidiPlaybackSnapshot = {
   error?: string;
   positionSec: number;
   durationSec: number;
+  midiNotes?: MidiPitchGuideNote[];
   tempoRate: number;
   timbre: MidiTimbre;
   octaveShift: number;
@@ -51,6 +53,7 @@ export class WebMidiEngine {
     isPlaying: false,
     positionSec: 0,
     durationSec: 0,
+    midiNotes: undefined,
     tempoRate: 1,
     timbre: "triangle",
     octaveShift: 0,
@@ -233,15 +236,22 @@ export class WebMidiEngine {
         isPlaying: true,
         positionSec: 0,
         durationSec: schedule.durationSec,
+        midiNotes: schedule.notes.map((note) => ({
+          noteNumber: note.noteNumber,
+          startSec: note.startSec,
+          endSec: note.endSec,
+        })),
       };
       this.scheduleFromPosition(0);
       this.startTicker();
       this.emit();
     } catch (error) {
+      this.schedule = null;
       this.snapshot = {
         ...this.snapshot,
         isPlaying: false,
         uri,
+        midiNotes: undefined,
         error: error instanceof Error ? error.message : "midi playback failed",
       };
       this.emit();

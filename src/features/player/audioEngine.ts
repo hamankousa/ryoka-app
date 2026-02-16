@@ -1,6 +1,7 @@
 import { Audio, AVPlaybackStatus } from "expo-av";
 import { Platform } from "react-native";
 
+import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { isMidiUrl } from "./audioSource";
 import { MidiTimbre, WebMidiEngine } from "./webMidiEngine";
 
@@ -13,6 +14,7 @@ export type PlaybackSnapshot = {
   error?: string;
   positionSec: number;
   durationSec: number;
+  midiNotes?: MidiPitchGuideNote[];
   tempoRate: number;
   timbre: MidiTimbre;
   octaveShift: number;
@@ -31,6 +33,7 @@ class AudioEngine {
     isPlaying: false,
     positionSec: 0,
     durationSec: 0,
+    midiNotes: undefined,
     tempoRate: 1,
     timbre: "triangle",
     octaveShift: 0,
@@ -68,6 +71,7 @@ class AudioEngine {
       isPlaying: status.isPlaying,
       positionSec: status.positionMillis / 1000,
       durationSec: (status.durationMillis ?? 0) / 1000,
+      midiNotes: undefined,
       canSeek: true,
       canLoop: true,
       canControlTempo: false,
@@ -146,6 +150,7 @@ class AudioEngine {
         error: undefined,
         positionSec: 0,
         durationSec: 0,
+        midiNotes: undefined,
         canSeek: true,
         canLoop: true,
         canControlTempo: false,
@@ -158,6 +163,7 @@ class AudioEngine {
         ...this.snapshot,
         backend: "expo",
         isPlaying: false,
+        midiNotes: undefined,
         error: error instanceof Error ? error.message : "playback failed",
       };
       this.emit();
@@ -261,6 +267,7 @@ class AudioEngine {
         error: snapshot.error,
         positionSec: snapshot.positionSec,
         durationSec: snapshot.durationSec,
+        midiNotes: snapshot.midiNotes,
         tempoRate: snapshot.tempoRate,
         timbre: snapshot.timbre,
         octaveShift: snapshot.octaveShift,

@@ -23,6 +23,7 @@ function baseProps() {
     canControlTempo: true,
     canControlTimbre: true,
     canControlOctave: true,
+    midiNotes: undefined,
     yearLabel: "明治四十五年寮歌",
     creditsText: "横山芳介君 作歌 / 赤木顕次君 作曲",
     lyricsHtml: "<p>都ぞ弥生の雲紫に</p>",
@@ -57,6 +58,13 @@ describe("MiniPlayer", () => {
 
     fireEvent.press(screen.getByTestId("mini-player-collapse-touch"));
     expect(props.onCollapse).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders scroll container in expanded modal", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded />);
+
+    expect(screen.getByTestId("mini-player-expanded-scroll")).toBeTruthy();
   });
 
   it("switches source from expanded controls", () => {
@@ -118,5 +126,24 @@ describe("MiniPlayer", () => {
 
     fireEvent.press(screen.getByTestId("mini-player-shuffle"));
     expect(props.onToggleShuffle).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders midi pitch guide when midi notes are passed", () => {
+    const props = baseProps();
+    props.midiNotes = [
+      { noteNumber: 60, startSec: 9.2, endSec: 10.8 },
+      { noteNumber: 64, startSec: 10.1, endSec: 11.4 },
+    ];
+    render(<MiniPlayer {...props} isExpanded />);
+
+    expect(screen.getByTestId("mini-player-midi-pitch-guide")).toBeTruthy();
+    expect(screen.getByTestId("mini-player-midi-pitch-bar-0")).toBeTruthy();
+  });
+
+  it("does not render midi pitch guide without midi notes", () => {
+    const props = baseProps();
+    render(<MiniPlayer {...props} isExpanded />);
+
+    expect(screen.queryByTestId("mini-player-midi-pitch-guide")).toBeNull();
   });
 });
