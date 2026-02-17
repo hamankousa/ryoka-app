@@ -16,6 +16,18 @@ export function buildScoreZoomUrl(uri: string, zoomPercent: number): string {
   return `${base}#zoom=${clamped}`;
 }
 
+function isHttpUrl(uri: string) {
+  return /^https?:\/\//i.test(uri);
+}
+
+export function buildNativeScoreViewerUrl(uri: string): string {
+  const [base] = uri.split("#");
+  if (!isHttpUrl(base)) {
+    return base;
+  }
+  return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(base)}`;
+}
+
 function escapeHtmlAttribute(raw: string): string {
   return raw
     .replace(/&/g, "&amp;")

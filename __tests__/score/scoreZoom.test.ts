@@ -1,4 +1,5 @@
 import {
+  buildNativeScoreViewerUrl,
   buildScoreViewerHtml,
   buildScoreZoomUrl,
   clampScoreZoom,
@@ -34,5 +35,17 @@ describe("scoreZoom", () => {
     const html = buildScoreViewerHtml("https://example.com/score/m45.pdf", 200);
     expect(html).toContain('transform: scale(2)');
     expect(html).toContain('src="https://example.com/score/m45.pdf"');
+  });
+
+  it("builds google viewer url for remote pdf on native", () => {
+    expect(buildNativeScoreViewerUrl("https://example.com/score/m45.pdf#zoom=125")).toBe(
+      "https://docs.google.com/gview?embedded=1&url=https%3A%2F%2Fexample.com%2Fscore%2Fm45.pdf"
+    );
+  });
+
+  it("keeps non-http uri as-is for native viewer", () => {
+    expect(buildNativeScoreViewerUrl("file:///offline/score/m45.pdf#zoom=125")).toBe(
+      "file:///offline/score/m45.pdf"
+    );
   });
 });

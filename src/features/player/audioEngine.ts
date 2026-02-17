@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { isMidiUrl } from "./audioSource";
+import { buildMidiSchedule } from "./midiParser";
 import { MidiTimbre, WebMidiEngine } from "./webMidiEngine";
 import { prepareWebPlaybackSession } from "./webPlaybackSession";
 
@@ -48,6 +49,8 @@ class AudioEngine {
   private listeners = new Set<(snapshot: PlaybackSnapshot) => void>();
   private webMidi = new WebMidiEngine();
   private activeBackend: BackendType = "expo";
+  private midiNotesCache = new Map<string, MidiPitchGuideNote[]>();
+  private playRequestId = 0;
 
   private emit() {
     for (const listener of this.listeners) {
@@ -72,7 +75,7 @@ class AudioEngine {
       isPlaying: status.isPlaying,
       positionSec: status.positionMillis / 1000,
       durationSec: (status.durationMillis ?? 0) / 1000,
-      midiNotes: undefined,
+      midiNotes: isMidiUrl(this.snapshot.uri ?? "") ? this.snapshot.midiNotes : undefined,
       canSeek: true,
       canLoop: true,
       canControlTempo: false,
@@ -103,6 +106,55 @@ class AudioEngine {
     }
     await this.sound.unloadAsync();
     this.sound = null;
+  }
+
+  private async readMidiNotes(uri: string) {
+    const response = await fetch(uri);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const schedule = buildMidiSchedule(bytes);
+    return schedule.notes.map((note) => ({
+      noteNumber: note.noteNumber,
+      startSec: note.startSec,
+      endSec: note.endSec,
+    }));
+  }
+
+  private async loadMidiNotesForExpoPlayback(uri: string, requestId: number) {
+    if (!isMidiUrl(uri)) {
+      return;
+    }
+
+    const cached = this.midiNotesCache.get(uri);
+    if (cached) {
+      if (
+        this.activeBackend === "expo" &&
+        this.playRequestId === requestId &&
+        this.snapshot.uri === uri &&
+        !this.snapshot.midiNotes
+      ) {
+        this.snapshot = { ...this.snapshot, midiNotes: cached };
+        this.emit();
+      }
+      return;
+    }
+
+    try {
+      const midiNotes = await this.readMidiNotes(uri);
+      this.midiNotesCache.set(uri, midiNotes);
+      if (
+        this.activeBackend === "expo" &&
+        this.playRequestId === requestId &&
+        this.snapshot.uri === uri
+      ) {
+        this.snapshot = { ...this.snapshot, midiNotes };
+        this.emit();
+      }
+    } catch {
+      // ignore note parsing errors: playback itself can still continue.
+    }
   }
 
   private async useWebMidiIfNeeded(uri: string) {
@@ -139,6 +191,7 @@ class AudioEngine {
   }
 
   async play(uri: string) {
+    const requestId = ++this.playRequestId;
     await prepareWebPlaybackSession();
 
     if (await this.useWebMidiIfNeeded(uri)) {
@@ -166,7 +219,7 @@ class AudioEngine {
         error: undefined,
         positionSec: 0,
         durationSec: 0,
-        midiNotes: undefined,
+        midiNotes: isMidiUrl(uri) ? this.midiNotesCache.get(uri) : undefined,
         canSeek: true,
         canLoop: true,
         canControlTempo: false,
@@ -174,6 +227,7 @@ class AudioEngine {
         canControlOctave: false,
       };
       this.emit();
+      void this.loadMidiNotesForExpoPlayback(uri, requestId);
     } catch (error) {
       this.snapshot = {
         ...this.snapshot,

@@ -7,6 +7,7 @@ import { SongManifestItem } from "../../../src/domain/manifest";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { resolveScoreSource } from "../../../src/features/score/resolveScoreSource";
 import {
+  buildNativeScoreViewerUrl,
   buildScoreViewerHtml,
   buildScoreZoomUrl,
   clampScoreZoom,
@@ -75,6 +76,16 @@ export default function ScoreScreen() {
     return buildScoreViewerHtml(sourceUri, zoomPercent);
   }, [sourceUri, zoomPercent]);
 
+  const nativeViewerUri = useMemo(() => {
+    if (!sourceUri) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(sourceUri)) {
+      return buildNativeScoreViewerUrl(sourceUri);
+    }
+    return zoomedUri;
+  }, [sourceUri, zoomedUri]);
+
   const zoomOut = () => setZoomPercent((prev) => clampScoreZoom(prev - SCORE_ZOOM_STEP));
   const zoomIn = () => setZoomPercent((prev) => clampScoreZoom(prev + SCORE_ZOOM_STEP));
   const resetZoom = () => setZoomPercent(SCORE_ZOOM_DEFAULT);
@@ -126,7 +137,7 @@ export default function ScoreScreen() {
         <ScoreFrameOnWeb html={webViewerHtml ?? ""} />
       ) : (
         <WebView
-          source={{ uri: zoomedUri }}
+          source={{ uri: nativeViewerUri ?? zoomedUri }}
           style={styles.webview}
           scalesPageToFit
           setBuiltInZoomControls
