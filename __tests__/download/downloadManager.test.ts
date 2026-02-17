@@ -167,4 +167,66 @@ describe("DownloadManager", () => {
     expect(progresses.some((value) => value > 0)).toBe(true);
     expect(progresses[progresses.length - 1]).toBe(100);
   });
+
+  it("cancels queued jobs before start", async () => {
+    const adapter: DownloadAdapter = {
+      download: async () => {
+        throw new Error("should not run");
+      },
+      exists: async () => true,
+    };
+
+    const manager = createDownloadManager({
+      adapter,
+      concurrency: 1,
+      retryLimit: 1,
+      sleep: async () => {},
+    });
+
+    const jobId = manager.enqueue({
+      songId: "m90",
+      files: [{ kind: "lyrics", sourceUrl: "a", destinationPath: "1" }],
+    });
+    manager.cancel(jobId);
+
+    const snapshot = manager.getSnapshot();
+    const job = snapshot.jobs.find((item) => item.jobId === jobId);
+    expect(job?.status).toBe("cancelled");
+  });
+
+  it("keeps cancelled downloading jobs from becoming completed", async () => {
+    const slot = deferred<void>();
+    let cancelled = false;
+    const adapter: DownloadAdapter = {
+      download: async () => {
+        await slot.promise;
+        return {};
+      },
+      exists: async () => true,
+      cancel: () => {
+        cancelled = true;
+      },
+    };
+
+    const manager = createDownloadManager({
+      adapter,
+      concurrency: 1,
+      retryLimit: 1,
+      sleep: async () => {},
+    });
+
+    const jobId = manager.enqueue({
+      songId: "m91",
+      files: [{ kind: "lyrics", sourceUrl: "a", destinationPath: "1" }],
+    });
+
+    await Promise.resolve();
+    manager.cancel(jobId);
+    slot.resolve();
+    await Promise.resolve();
+
+    const job = manager.getSnapshot().jobs.find((item) => item.jobId === jobId);
+    expect(cancelled).toBe(true);
+    expect(job?.status).toBe("cancelled");
+  });
 });

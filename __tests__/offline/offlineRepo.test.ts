@@ -62,6 +62,7 @@ describe("offlineRepo", () => {
     expect(paths.pianoAudioPath).toBe("file:///doc/offline/audio/piano/m45.midi");
     expect(paths.lyricsPath).toBe("file:///doc/offline/lyrics/m45.html");
     expect(paths.scorePath).toBe("file:///doc/offline/score/m45.pdf");
+    expect(paths.vocalAlternatePaths).toBeUndefined();
     expect(fileSystem.createdDirs).toEqual([
       "file:///doc/offline",
       "file:///doc/offline/audio",

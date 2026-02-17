@@ -118,19 +118,19 @@ describe("getManifestBaseUrl", () => {
     }
 
     if (originalExpoBase === undefined) {
-      delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
+      Reflect.deleteProperty(process.env, "EXPO_PUBLIC_MANIFEST_BASE_URL");
     } else {
       process.env.EXPO_PUBLIC_MANIFEST_BASE_URL = originalExpoBase;
     }
 
     if (originalManifestBase === undefined) {
-      delete process.env.MANIFEST_BASE_URL;
+      Reflect.deleteProperty(process.env, "MANIFEST_BASE_URL");
     } else {
       process.env.MANIFEST_BASE_URL = originalManifestBase;
     }
 
     if (originalNodeEnv === undefined) {
-      delete process.env.NODE_ENV;
+      Reflect.deleteProperty(process.env, "NODE_ENV");
     } else {
       process.env.NODE_ENV = originalNodeEnv;
     }
@@ -142,8 +142,8 @@ describe("getManifestBaseUrl", () => {
   });
 
   it("uses public content host on non-local web host", () => {
-    delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
-    delete process.env.MANIFEST_BASE_URL;
+    Reflect.deleteProperty(process.env, "EXPO_PUBLIC_MANIFEST_BASE_URL");
+    Reflect.deleteProperty(process.env, "MANIFEST_BASE_URL");
     process.env.NODE_ENV = "test";
     setLocationHost("ryoka-app.pages.dev");
 
@@ -151,8 +151,8 @@ describe("getManifestBaseUrl", () => {
   });
 
   it("uses localhost in local development", () => {
-    delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
-    delete process.env.MANIFEST_BASE_URL;
+    Reflect.deleteProperty(process.env, "EXPO_PUBLIC_MANIFEST_BASE_URL");
+    Reflect.deleteProperty(process.env, "MANIFEST_BASE_URL");
     process.env.NODE_ENV = "test";
     setLocationHost("localhost");
 

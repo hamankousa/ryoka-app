@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { SongManifestItem } from "../../src/domain/manifest";
+import { downloadService, SongDownloadMeta } from "../../src/features/download/downloadService";
+import { getSongDownloadState } from "../../src/features/download/downloadState";
+import { OfflineEntry } from "../../src/features/offline/offlineRepo";
 import { audioEngine, PlaybackSnapshot } from "../../src/features/player/audioEngine";
 import { playSongWithQueue } from "../../src/features/player/globalPlayer";
 import { AudioSource, getPlayableAudioCandidates } from "../../src/features/player/playerStore";
@@ -19,9 +22,24 @@ export default function ListTabScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(audioEngine.getSnapshot());
+  const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
+  const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
+  const [downloadMetaBySongId, setDownloadMetaBySongId] = useState<Record<string, SongDownloadMeta>>({});
 
   useEffect(() => {
     let mounted = true;
+    async function refreshDownloadState() {
+      const [offline, metas] = await Promise.all([
+        downloadService.listOfflineEntries(),
+        downloadService.listDownloadMetas(),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setOfflineEntries(Object.fromEntries(offline.map((entry) => [entry.songId, entry])));
+      setDownloadMetaBySongId(Object.fromEntries(metas.map((meta) => [meta.songId, meta])));
+    }
+
     async function run() {
       setIsLoading(true);
       setErrorMessage(null);
@@ -30,6 +48,7 @@ export default function ListTabScreen() {
         if (mounted) {
           setSongs(result.songs);
         }
+        await refreshDownloadState();
       } catch (error) {
         if (mounted) {
           setErrorMessage(error instanceof Error ? error.message : "一覧データの読み込みに失敗しました。");
@@ -44,6 +63,20 @@ export default function ListTabScreen() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    return downloadService.subscribe((snapshot) => {
+      setDownloadSnapshot(snapshot);
+      void (async () => {
+        const [offline, metas] = await Promise.all([
+          downloadService.listOfflineEntries(),
+          downloadService.listDownloadMetas(),
+        ]);
+        setOfflineEntries(Object.fromEntries(offline.map((entry) => [entry.songId, entry])));
+        setDownloadMetaBySongId(Object.fromEntries(metas.map((meta) => [meta.songId, meta])));
+      })();
+    });
   }, []);
 
   useEffect(() => {
@@ -99,6 +132,16 @@ export default function ListTabScreen() {
                   key={song.id}
                   style={[styles.row, { backgroundColor: palette.surfaceBackground, borderBottomColor: palette.border }]}
                 >
+                  {(() => {
+                    const activeJob = downloadService.getJobBySongId(downloadSnapshot, song.id);
+                    const downloadState = getSongDownloadState(
+                      song,
+                      offlineEntries[song.id] ?? null,
+                      activeJob,
+                      downloadMetaBySongId[song.id] ?? null
+                    );
+                    return (
+                      <>
                   <View style={styles.main}>
                     <Text numberOfLines={1} style={[styles.title, { color: palette.textPrimary }]}>
                       {song.title}
@@ -152,8 +195,49 @@ export default function ListTabScreen() {
                       <Link href={`/score/${song.id}`} style={styles.linkScore}>
                         楽譜
                       </Link>
+                      <Link href={`/song/${song.id}`} style={styles.linkDetail}>
+                        詳細
+                      </Link>
                     </View>
+                    {Platform.OS !== "web" && (
+                      <View style={styles.downloadArea}>
+                        <Text style={[styles.downloadBadge, { color: palette.textSecondary }]}>DL: {downloadState.badge}</Text>
+                        {downloadState.canDownload && (
+                          <Pressable
+                            style={styles.downloadButton}
+                            onPress={() => {
+                              void downloadService.downloadSong(song);
+                            }}
+                          >
+                            <Text style={styles.downloadButtonText}>DL</Text>
+                          </Pressable>
+                        )}
+                        {downloadState.canRetry && (
+                          <Pressable
+                            style={styles.retryButton}
+                            onPress={() => {
+                              void downloadService.retrySongDownload(song);
+                            }}
+                          >
+                            <Text style={styles.retryButtonText}>再試行</Text>
+                          </Pressable>
+                        )}
+                        {downloadState.canCancel && (
+                          <Pressable
+                            style={styles.cancelButton}
+                            onPress={() => {
+                              downloadService.cancelSongDownload(song.id);
+                            }}
+                          >
+                            <Text style={styles.cancelButtonText}>中止</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
                   </View>
+                      </>
+                    );
+                  })()}
                 </View>
               ))}
             </View>
@@ -230,6 +314,54 @@ const styles = StyleSheet.create({
     color: "#1D4ED8",
     fontSize: 11,
     fontWeight: "700",
+  },
+  linkDetail: {
+    color: "#0369A1",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  downloadArea: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  downloadBadge: {
+    color: "#64748B",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  downloadButton: {
+    backgroundColor: "#0369A1",
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  downloadButtonText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  retryButton: {
+    backgroundColor: "#0F766E",
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  cancelButton: {
+    backgroundColor: "#B45309",
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  cancelButtonText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
   },
   list: {
     gap: 8,

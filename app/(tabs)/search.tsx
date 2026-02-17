@@ -22,6 +22,9 @@ import {
   resolveFilterPanelCollapsedOnScroll,
 } from "../../src/domain/filterPanelBehavior";
 import { SongManifestItem } from "../../src/domain/manifest";
+import { downloadService, SongDownloadMeta } from "../../src/features/download/downloadService";
+import { getSongDownloadState } from "../../src/features/download/downloadState";
+import { OfflineEntry } from "../../src/features/offline/offlineRepo";
 import { audioEngine, PlaybackSnapshot } from "../../src/features/player/audioEngine";
 import { playSongWithQueue } from "../../src/features/player/globalPlayer";
 import { AudioSource, getPlayableAudioCandidates } from "../../src/features/player/playerStore";
@@ -53,6 +56,9 @@ export default function SearchTabScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(audioEngine.getSnapshot());
+  const [offlineEntries, setOfflineEntries] = useState<Record<string, OfflineEntry>>({});
+  const [downloadSnapshot, setDownloadSnapshot] = useState(downloadService.getSnapshot());
+  const [downloadMetaBySongId, setDownloadMetaBySongId] = useState<Record<string, SongDownloadMeta>>({});
   const [eraFilter, setEraFilter] = useState<EraFilter>("all");
   const [yearKeyFilter, setYearKeyFilter] = useState<string | null>(null);
   const [yearDecadeFilter, setYearDecadeFilter] = useState<number | null>(null);
@@ -109,6 +115,18 @@ export default function SearchTabScreen() {
 
   useEffect(() => {
     let mounted = true;
+    async function refreshDownloadState() {
+      const [offline, metas] = await Promise.all([
+        downloadService.listOfflineEntries(),
+        downloadService.listDownloadMetas(),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setOfflineEntries(Object.fromEntries(offline.map((entry) => [entry.songId, entry])));
+      setDownloadMetaBySongId(Object.fromEntries(metas.map((meta) => [meta.songId, meta])));
+    }
+
     async function run() {
       setIsLoading(true);
       setErrorMessage(null);
@@ -117,6 +135,7 @@ export default function SearchTabScreen() {
         if (mounted) {
           setSongs(result.songs);
         }
+        await refreshDownloadState();
       } catch (error) {
         if (mounted) {
           setErrorMessage(error instanceof Error ? error.message : "検索データの読み込みに失敗しました。");
@@ -131,6 +150,20 @@ export default function SearchTabScreen() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    return downloadService.subscribe((snapshot) => {
+      setDownloadSnapshot(snapshot);
+      void (async () => {
+        const [offline, metas] = await Promise.all([
+          downloadService.listOfflineEntries(),
+          downloadService.listDownloadMetas(),
+        ]);
+        setOfflineEntries(Object.fromEntries(offline.map((entry) => [entry.songId, entry])));
+        setDownloadMetaBySongId(Object.fromEntries(metas.map((meta) => [meta.songId, meta])));
+      })();
+    });
   }, []);
 
   useEffect(() => {
@@ -431,6 +464,16 @@ export default function SearchTabScreen() {
                   key={song.id}
                   style={[styles.row, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}
                 >
+                  {(() => {
+                    const activeJob = downloadService.getJobBySongId(downloadSnapshot, song.id);
+                    const downloadState = getSongDownloadState(
+                      song,
+                      offlineEntries[song.id] ?? null,
+                      activeJob,
+                      downloadMetaBySongId[song.id] ?? null
+                    );
+                    return (
+                      <>
                   <Text style={[styles.songTitle, { color: palette.textPrimary }]}>{song.title}</Text>
                   <Text style={[styles.songMeta, { color: palette.textSecondary }]}>
                     {song.id.toUpperCase()} / {song.yearLabel ?? "-"}
@@ -480,8 +523,49 @@ export default function SearchTabScreen() {
                       <Link href={`/score/${song.id}`} style={styles.linkScore}>
                         楽譜
                       </Link>
+                      <Link href={`/song/${song.id}`} style={styles.linkDetail}>
+                        詳細
+                      </Link>
                     </View>
                   </View>
+                  {Platform.OS !== "web" && (
+                    <View style={styles.downloadRow}>
+                      <Text style={[styles.downloadBadge, { color: palette.textSecondary }]}>DL: {downloadState.badge}</Text>
+                      {downloadState.canDownload && (
+                        <Pressable
+                          style={styles.downloadButton}
+                          onPress={() => {
+                            void downloadService.downloadSong(song);
+                          }}
+                        >
+                          <Text style={styles.downloadButtonText}>DL</Text>
+                        </Pressable>
+                      )}
+                      {downloadState.canRetry && (
+                        <Pressable
+                          style={styles.retryButton}
+                          onPress={() => {
+                            void downloadService.retrySongDownload(song);
+                          }}
+                        >
+                          <Text style={styles.retryButtonText}>再試行</Text>
+                        </Pressable>
+                      )}
+                      {downloadState.canCancel && (
+                        <Pressable
+                          style={styles.cancelButton}
+                          onPress={() => {
+                            downloadService.cancelSongDownload(song.id);
+                          }}
+                        >
+                          <Text style={styles.cancelButtonText}>中止</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
+                      </>
+                    );
+                  })()}
                 </View>
               ))}
             </View>
@@ -647,6 +731,55 @@ const styles = StyleSheet.create({
     color: "#1D4ED8",
     fontSize: 12,
     fontWeight: "700",
+  },
+  linkDetail: {
+    color: "#0369A1",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  downloadRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  downloadBadge: {
+    color: "#64748B",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  downloadButton: {
+    backgroundColor: "#0369A1",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  downloadButtonText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  retryButton: {
+    backgroundColor: "#0F766E",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  cancelButton: {
+    backgroundColor: "#B45309",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  cancelButtonText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
   },
   list: {
     gap: 10,

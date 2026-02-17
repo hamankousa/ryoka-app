@@ -7,10 +7,12 @@ export type OfflineSongPaths = {
   pianoAudioPath: string;
   lyricsPath: string;
   scorePath: string;
+  vocalAlternatePaths?: Record<string, string>;
 };
 type AudioExtensions = {
   vocalExt?: string;
   pianoExt?: string;
+  vocalAlternateExtById?: Record<string, string | undefined>;
 };
 
 export type OfflineEntry = {
@@ -117,12 +119,21 @@ function createPathBuilder(rootDir: string) {
       lyrics: `${root}/lyrics`,
       score: `${root}/score`,
     },
-    songPaths: (songId: string, extensions: AudioExtensions = {}): OfflineSongPaths => ({
-      vocalAudioPath: `${audio}/vocal/${songId}${normalizeExtension(extensions.vocalExt, ".mp3")}`,
-      pianoAudioPath: `${audio}/piano/${songId}${normalizeExtension(extensions.pianoExt, ".mp3")}`,
-      lyricsPath: `${root}/lyrics/${songId}.html`,
-      scorePath: `${root}/score/${songId}.pdf`,
-    }),
+    songPaths: (songId: string, extensions: AudioExtensions = {}): OfflineSongPaths => {
+      const vocalAlternatePaths = Object.fromEntries(
+        Object.entries(extensions.vocalAlternateExtById ?? {}).map(([alternateId, ext]) => [
+          alternateId,
+          `${audio}/vocal/${songId}__alt-${alternateId}${normalizeExtension(ext, ".mp3")}`,
+        ])
+      );
+      return {
+        vocalAudioPath: `${audio}/vocal/${songId}${normalizeExtension(extensions.vocalExt, ".mp3")}`,
+        pianoAudioPath: `${audio}/piano/${songId}${normalizeExtension(extensions.pianoExt, ".mp3")}`,
+        lyricsPath: `${root}/lyrics/${songId}.html`,
+        scorePath: `${root}/score/${songId}.pdf`,
+        vocalAlternatePaths: Object.keys(vocalAlternatePaths).length > 0 ? vocalAlternatePaths : undefined,
+      };
+    },
   };
 }
 
@@ -202,6 +213,7 @@ export function createOfflineRepo({
           current.files.pianoAudioPath,
           current.files.lyricsPath,
           current.files.scorePath,
+          ...Object.values(current.files.vocalAlternatePaths ?? {}),
         ];
 
         for (const path of files) {

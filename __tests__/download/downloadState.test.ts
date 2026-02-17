@@ -47,6 +47,8 @@ describe("getSongDownloadState", () => {
       badge: "ダウンロード中 55%",
       canDelete: false,
       canDownload: false,
+      canRetry: false,
+      canCancel: true,
     });
   });
 
@@ -57,6 +59,8 @@ describe("getSongDownloadState", () => {
       badge: "更新あり",
       canDelete: true,
       canDownload: true,
+      canRetry: false,
+      canCancel: false,
     });
   });
 
@@ -67,6 +71,8 @@ describe("getSongDownloadState", () => {
       badge: "済",
       canDelete: true,
       canDownload: false,
+      canRetry: false,
+      canCancel: false,
     });
   });
 
@@ -75,6 +81,57 @@ describe("getSongDownloadState", () => {
       badge: "未",
       canDelete: false,
       canDownload: true,
+      canRetry: false,
+      canCancel: false,
+    });
+  });
+
+  it("shows failed badge and retry action", () => {
+    expect(
+      getSongDownloadState(song("2026-02-06T00:00:00Z"), null, null, {
+        songId: "m45",
+        status: "failed",
+        progress: 20,
+      })
+    ).toEqual({
+      badge: "失敗",
+      canDelete: false,
+      canDownload: false,
+      canRetry: true,
+      canCancel: false,
+    });
+  });
+
+  it("shows interrupted badge when failed meta is interrupted", () => {
+    expect(
+      getSongDownloadState(song("2026-02-06T00:00:00Z"), null, null, {
+        songId: "m45",
+        status: "failed",
+        progress: 20,
+        interrupted: true,
+      })
+    ).toEqual({
+      badge: "中断",
+      canDelete: false,
+      canDownload: false,
+      canRetry: true,
+      canCancel: false,
+    });
+  });
+
+  it("shows cancelled badge and retry action", () => {
+    expect(
+      getSongDownloadState(song("2026-02-06T00:00:00Z"), null, null, {
+        songId: "m45",
+        status: "cancelled",
+        progress: 30,
+      })
+    ).toEqual({
+      badge: "キャンセル",
+      canDelete: false,
+      canDownload: false,
+      canRetry: true,
+      canCancel: false,
     });
   });
 });

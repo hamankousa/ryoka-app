@@ -9,6 +9,7 @@ const QUICK_ACTIONS = [
   { href: "/list", title: "一覧", subtitle: "元号ごとに寮歌をたどる", accent: "#2563EB" },
   { href: "/library", title: "ライブラリ", subtitle: "ダウンロード済みの曲を管理", accent: "#0E7490" },
   { href: "/settings", title: "設定", subtitle: "表示・再生・検索挙動をカスタマイズ", accent: "#0EA5E9" },
+  { href: "/legal", title: "法務", subtitle: "プライバシーと著作権の案内", accent: "#0891B2" },
 ] as const;
 
 const TECH_SPECS = [

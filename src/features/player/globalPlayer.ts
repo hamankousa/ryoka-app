@@ -1,5 +1,6 @@
 import { SongManifestItem } from "../../domain/manifest";
 import { Platform } from "react-native";
+import { downloadService } from "../download/downloadService";
 import { audioEngine } from "./audioEngine";
 import { AudioSource, createPlayerStore, getPlayableAudioCandidates } from "./playerStore";
 
@@ -52,9 +53,21 @@ async function playCurrentFromStore(toggleIfSame: boolean) {
     return;
   }
 
-  const candidates = getPlayableAudioCandidates(store.currentSong, undefined, store.source, {
-    platformOs: Platform.OS,
-  });
+  const offlineEntry = await downloadService.getOfflineEntry(store.currentSong.id);
+  const candidates = getPlayableAudioCandidates(
+    store.currentSong,
+    offlineEntry
+      ? {
+          songId: store.currentSong.id,
+          vocalPath: offlineEntry.files.vocalAudioPath,
+          pianoPath: offlineEntry.files.pianoAudioPath,
+        }
+      : undefined,
+    store.source,
+    {
+      platformOs: Platform.OS,
+    }
+  );
   const primaryUri = candidates[0];
   const snap = audioEngine.getSnapshot();
 

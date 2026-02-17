@@ -40,6 +40,8 @@ npm run test
 - 開発手順: `docs/development-guide.md`
 - Web公開手順（Cloudflare Pages）: `docs/deploy-cloudflare-pages.md`
 - Androidビルド手順（EAS）: `docs/android-build-guide.md`
+- プライバシーポリシー（ドラフト）: `docs/privacy-policy.md`
+- 著作権・利用上の注意（ドラフト）: `docs/copyright-notice.md`
 - セットアップ/変更ログ: `docs/setup-log.md`
 - 重要判断ログ: `docs/decision-log.md`
 - 手動起動マニュアル: `docs/local-run-manual.md`

@@ -4,6 +4,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
+import { downloadService } from "../../../src/features/download/downloadService";
 import { resolveLyricsSource } from "../../../src/features/lyrics/resolveLyricsSource";
 import { buildStyledLyricsHtml } from "../../../src/features/lyrics/sanitizeLyricsInlineHtml";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
@@ -20,6 +21,7 @@ export default function LyricsScreen() {
   const { palette, resolvedTheme } = useAppSettings();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
+  const [offlineLyricsPath, setOfflineLyricsPath] = useState<string | undefined>(undefined);
   const [inlineHtml, setInlineHtml] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const songId = typeof params.songId === "string" ? params.songId : "";
@@ -43,6 +45,10 @@ export default function LyricsScreen() {
         }
 
         setSong(found);
+        const offlineEntry = await downloadService.getOfflineEntry(found.id);
+        if (mounted) {
+          setOfflineLyricsPath(offlineEntry?.files.lyricsPath);
+        }
 
         if (Platform.OS === "web") {
           const response = await fetch(found.lyrics.htmlUrl);
@@ -67,8 +73,12 @@ export default function LyricsScreen() {
     if (!song) {
       return null;
     }
-    return resolveLyricsSource(song, undefined, inlineHtml ?? undefined);
-  }, [song, inlineHtml]);
+    return resolveLyricsSource(
+      song,
+      offlineLyricsPath ? { songId: song.id, lyricsPath: offlineLyricsPath } : undefined,
+      inlineHtml ?? undefined
+    );
+  }, [song, inlineHtml, offlineLyricsPath]);
 
   const styledInlineHtml = useMemo(() => {
     if (source?.type !== "html") {

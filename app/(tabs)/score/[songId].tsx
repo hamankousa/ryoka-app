@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
+import { downloadService } from "../../../src/features/download/downloadService";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { resolveScoreSource } from "../../../src/features/score/resolveScoreSource";
 import {
@@ -29,6 +30,7 @@ export default function ScoreScreen() {
   const { palette } = useAppSettings();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
+  const [offlineScorePath, setOfflineScorePath] = useState<string | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [zoomPercent, setZoomPercent] = useState<number>(SCORE_ZOOM_DEFAULT);
   const songId = typeof params.songId === "string" ? params.songId : "";
@@ -46,6 +48,10 @@ export default function ScoreScreen() {
           return;
         }
         setSong(found);
+        const offlineEntry = await downloadService.getOfflineEntry(found.id);
+        if (mounted) {
+          setOfflineScorePath(offlineEntry?.files.scorePath);
+        }
       } catch (error) {
         if (!mounted) return;
         setErrorMessage(error instanceof Error ? error.message : "楽譜の読み込みに失敗しました。");
@@ -59,8 +65,11 @@ export default function ScoreScreen() {
 
   const sourceUri = useMemo(() => {
     if (!song) return null;
-    return resolveScoreSource(song);
-  }, [song]);
+    return resolveScoreSource(
+      song,
+      offlineScorePath ? { songId: song.id, scorePath: offlineScorePath } : undefined
+    );
+  }, [song, offlineScorePath]);
 
   const zoomedUri = useMemo(() => {
     if (!sourceUri) {

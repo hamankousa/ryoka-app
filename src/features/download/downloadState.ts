@@ -10,16 +10,47 @@ export type DownloadJobView = {
   progress: number;
 };
 
+export type SongDownloadMetaView = {
+  songId: string;
+  status: DownloadJobStatus;
+  progress: number;
+  error?: string;
+  interrupted?: boolean;
+};
+
 export function getSongDownloadState(
   song: SongManifestItem,
   offlineEntry: OfflineEntry | null,
-  activeJob: DownloadJobView | null
+  activeJob: DownloadJobView | null,
+  meta?: SongDownloadMetaView | null
 ) {
   if (activeJob && (activeJob.status === "downloading" || activeJob.status === "retrying" || activeJob.status === "queued")) {
     return {
       badge: `ダウンロード中 ${Math.round(activeJob.progress)}%`,
       canDownload: false,
+      canRetry: false,
+      canCancel: true,
       canDelete: false,
+    };
+  }
+
+  if (meta?.status === "failed") {
+    return {
+      badge: meta.interrupted ? "中断" : "失敗",
+      canDownload: false,
+      canRetry: true,
+      canCancel: false,
+      canDelete: Boolean(offlineEntry),
+    };
+  }
+
+  if (meta?.status === "cancelled") {
+    return {
+      badge: "キャンセル",
+      canDownload: false,
+      canRetry: true,
+      canCancel: false,
+      canDelete: Boolean(offlineEntry),
     };
   }
 
@@ -27,6 +58,8 @@ export function getSongDownloadState(
     return {
       badge: "未",
       canDownload: true,
+      canRetry: false,
+      canCancel: false,
       canDelete: false,
     };
   }
@@ -36,6 +69,8 @@ export function getSongDownloadState(
     return {
       badge: "更新あり",
       canDownload: true,
+      canRetry: false,
+      canCancel: false,
       canDelete: true,
     };
   }
@@ -43,6 +78,8 @@ export function getSongDownloadState(
   return {
     badge: "済",
     canDownload: false,
+    canRetry: false,
+    canCancel: false,
     canDelete: true,
   };
 }

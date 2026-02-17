@@ -17,6 +17,7 @@ export type DownloadJobStatus =
   | "queued"
   | "downloading"
   | "retrying"
+  | "cancelled"
   | "completed"
   | "failed";
 
@@ -29,9 +30,11 @@ export interface DownloadAdapter {
   download(
     sourceUrl: string,
     destinationPath: string,
-    onProgress: (value0to1: number) => void
+    onProgress: (value0to1: number) => void,
+    context?: { jobId: string; fileKind: DownloadFileKind }
   ): Promise<DownloadResult>;
   exists(path: string): Promise<boolean>;
+  cancel?(jobId: string): void | Promise<void>;
 }
 
 type InternalJob = {
@@ -40,6 +43,7 @@ type InternalJob = {
   status: DownloadJobStatus;
   progress: number;
   attempts: number;
+  isActive: boolean;
   error?: string;
 };
 
@@ -101,6 +105,22 @@ export function createDownloadManager({
     emit();
   };
 
+  const isStoppedStatus = (status: DownloadJobStatus) =>
+    status === "completed" || status === "failed" || status === "cancelled";
+
+  const finishActiveJob = (jobId: string) => {
+    const target = jobs.get(jobId);
+    if (!target || !target.isActive) {
+      return;
+    }
+    const nextActive = Math.max(0, activeCount - 1);
+    activeCount = nextActive;
+    jobs.set(jobId, {
+      ...target,
+      isActive: false,
+    });
+  };
+
   const validateDownload = async (file: DownloadFile, result: DownloadResult) => {
     if (!(await adapter.exists(file.destinationPath))) {
       throw new Error(`Missing file: ${file.destinationPath}`);
@@ -116,11 +136,28 @@ export function createDownloadManager({
   const runJob = async (internal: InternalJob) => {
     const total = internal.job.files.length;
     for (let fileIndex = 0; fileIndex < total; fileIndex += 1) {
+      const current = jobs.get(internal.jobId);
+      if (!current || current.status === "cancelled") {
+        return;
+      }
       const file = internal.job.files[fileIndex];
-      const result = await adapter.download(file.sourceUrl, file.destinationPath, (value) => {
-        const progress = ((fileIndex + Math.max(0, Math.min(value, 1))) / total) * 100;
-        updateJob(internal.jobId, { progress: normalizeProgress(progress) });
-      });
+      const result = await adapter.download(
+        file.sourceUrl,
+        file.destinationPath,
+        (value) => {
+          const target = jobs.get(internal.jobId);
+          if (!target || target.status === "cancelled") {
+            return;
+          }
+          const progress = ((fileIndex + Math.max(0, Math.min(value, 1))) / total) * 100;
+          updateJob(internal.jobId, { progress: normalizeProgress(progress) });
+        },
+        { jobId: internal.jobId, fileKind: file.kind }
+      );
+      const latest = jobs.get(internal.jobId);
+      if (!latest || latest.status === "cancelled") {
+        return;
+      }
       await validateDownload(file, result);
       const finishedProgress = ((fileIndex + 1) / total) * 100;
       updateJob(internal.jobId, { progress: normalizeProgress(finishedProgress) });
@@ -131,13 +168,24 @@ export function createDownloadManager({
     const waitMs = retryBaseMs * 2 ** Math.max(0, attempts - 1);
     updateJob(jobId, { status: "retrying", attempts });
     await sleep(waitMs);
+    const current = jobs.get(jobId);
+    if (!current || current.status === "cancelled") {
+      return;
+    }
     queue.push(jobId);
     pump();
   };
 
   const complete = (jobId: string) => {
+    const target = jobs.get(jobId);
+    if (!target || target.status === "cancelled") {
+      finishActiveJob(jobId);
+      emit();
+      pump();
+      return;
+    }
     updateJob(jobId, { status: "completed", progress: 100 });
-    activeCount -= 1;
+    finishActiveJob(jobId);
     emit();
     pump();
   };
@@ -145,7 +193,13 @@ export function createDownloadManager({
   const fail = async (jobId: string, error: unknown) => {
     const target = jobs.get(jobId);
     if (!target) {
-      activeCount -= 1;
+      activeCount = Math.max(0, activeCount - 1);
+      emit();
+      pump();
+      return;
+    }
+    if (target.status === "cancelled") {
+      finishActiveJob(jobId);
       emit();
       pump();
       return;
@@ -153,7 +207,7 @@ export function createDownloadManager({
 
     const nextAttempt = target.attempts + 1;
     if (nextAttempt <= retryLimit) {
-      activeCount -= 1;
+      finishActiveJob(jobId);
       emit();
       await scheduleRetry(jobId, nextAttempt);
       return;
@@ -164,7 +218,7 @@ export function createDownloadManager({
       attempts: nextAttempt,
       error: error instanceof Error ? error.message : "download failed",
     });
-    activeCount -= 1;
+    finishActiveJob(jobId);
     emit();
     pump();
   };
@@ -177,6 +231,7 @@ export function createDownloadManager({
     activeCount += 1;
     updateJob(jobId, {
       status: "downloading",
+      isActive: true,
       error: undefined,
     });
 
@@ -195,7 +250,7 @@ export function createDownloadManager({
         break;
       }
       const target = jobs.get(nextId);
-      if (!target || target.status === "completed" || target.status === "failed") {
+      if (!target || isStoppedStatus(target.status)) {
         continue;
       }
       void startJob(nextId);
@@ -215,11 +270,40 @@ export function createDownloadManager({
         status: "queued",
         progress: 0,
         attempts: 0,
+        isActive: false,
       });
       queue.push(jobId);
       emit();
       pump();
       return jobId;
+    },
+    cancel: (jobId: string) => {
+      const target = jobs.get(jobId);
+      if (!target || isStoppedStatus(target.status)) {
+        return;
+      }
+
+      const wasQueued = target.status === "queued" || target.status === "retrying";
+      if (wasQueued) {
+        const nextQueue = queue.filter((id) => id !== jobId);
+        queue.splice(0, queue.length, ...nextQueue);
+      }
+
+      if (target.isActive) {
+        finishActiveJob(jobId);
+      }
+
+      updateJob(jobId, {
+        status: "cancelled",
+        error: "cancelled",
+      });
+
+      if (target.isActive && adapter.cancel) {
+        void adapter.cancel(jobId);
+      }
+
+      emit();
+      pump();
     },
     subscribe: (listener: (snapshot: DownloadSnapshot) => void) => {
       listeners.add(listener);
