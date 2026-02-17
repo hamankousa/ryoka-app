@@ -2,6 +2,8 @@ import { Link } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -43,6 +45,7 @@ import { useAppSettings } from "../../src/features/settings/SettingsContext";
 const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
   const { settings, palette } = useAppSettings();
+  const introAnim = useRef(new Animated.Value(0)).current;
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
@@ -61,6 +64,16 @@ export default function SearchTabScreen() {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
+
+  useEffect(() => {
+    introAnim.setValue(0);
+    Animated.timing(introAnim, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [introAnim]);
 
   const animateFilterPanelTransition = () => {
     LayoutAnimation.configureNext({
@@ -255,10 +268,37 @@ export default function SearchTabScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
-      <Text style={[styles.heading, { color: palette.textPrimary }]}>曲を検索</Text>
-      <Text style={[styles.description, { color: palette.textSecondary }]}>
-        キーワード + 年度クイック検索で絞り込みできます。
-      </Text>
+      <Animated.View
+        style={{
+          opacity: introAnim,
+          transform: [
+            {
+              translateY: introAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [14, 0],
+              }),
+            },
+          ],
+        }}
+      >
+        <Text style={[styles.heading, { color: palette.textPrimary }]}>曲を検索</Text>
+        <Text style={[styles.description, { color: palette.textSecondary }]}>
+          キーワード + 年度クイック検索で絞り込みできます。
+        </Text>
+      </Animated.View>
+      <Animated.View
+        style={{
+          opacity: introAnim,
+          transform: [
+            {
+              translateY: introAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [18, 0],
+              }),
+            },
+          ],
+        }}
+      >
       <View style={[styles.filterPanel, { backgroundColor: palette.surfaceStrong, borderColor: palette.border }]}>
         <View style={styles.filterPanelHeader}>
           <Text style={[styles.filterPanelTitle, { color: palette.textPrimary }]}>絞り込み</Text>
@@ -370,6 +410,7 @@ export default function SearchTabScreen() {
           </>
         )}
       </View>
+      </Animated.View>
 
       {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
       {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}

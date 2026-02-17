@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
@@ -14,6 +14,47 @@ const QUICK_ACTIONS = [
 export default function HomeTabScreen() {
   const router = useRouter();
   const { palette } = useAppSettings();
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const actionAnims = useRef(QUICK_ACTIONS.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    heroAnim.setValue(0);
+    for (const value of actionAnims) {
+      value.setValue(0);
+    }
+    Animated.sequence([
+      Animated.timing(heroAnim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.stagger(
+        70,
+        actionAnims.map((value) =>
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          })
+        )
+      ),
+    ]).start();
+  }, [actionAnims, heroAnim]);
+
+  const heroAnimatedStyle = {
+    opacity: heroAnim,
+    transform: [
+      {
+        translateY: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [16, 0],
+        }),
+      },
+    ],
+  } as const;
+
   const dynamicStyles = useMemo(
     () =>
       StyleSheet.create({
@@ -46,24 +87,41 @@ export default function HomeTabScreen() {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={[styles.hero, dynamicStyles.hero]}>
+      <Animated.View style={[styles.hero, dynamicStyles.hero, heroAnimatedStyle]}>
         <Text style={[styles.eyebrow, dynamicStyles.eyebrow]}>KEITEKI RYOKA</Text>
         <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
           ホームから各機能へ移動できます。設定画面で表示や再生挙動を切り替え可能です。
         </Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.actions}>
-        {QUICK_ACTIONS.map((action) => (
-          <Pressable
-            key={action.href}
-            style={[styles.actionCard, dynamicStyles.actionCard, { borderColor: action.accent }]}
-            onPress={() => router.push(action.href)}
-          >
-            <Text style={[styles.actionTitle, dynamicStyles.actionTitle]}>{action.title}</Text>
-            <Text style={[styles.actionSubtitle, dynamicStyles.actionSubtitle]}>{action.subtitle}</Text>
-          </Pressable>
-        ))}
+        {QUICK_ACTIONS.map((action, index) => {
+          const value = actionAnims[index];
+          return (
+            <Animated.View
+              key={action.href}
+              style={{
+                opacity: value,
+                transform: [
+                  {
+                    translateY: value.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Pressable
+                style={[styles.actionCard, dynamicStyles.actionCard, { borderColor: action.accent }]}
+                onPress={() => router.push(action.href)}
+              >
+                <Text style={[styles.actionTitle, dynamicStyles.actionTitle]}>{action.title}</Text>
+                <Text style={[styles.actionSubtitle, dynamicStyles.actionSubtitle]}>{action.subtitle}</Text>
+              </Pressable>
+            </Animated.View>
+          );
+        })}
       </View>
     </View>
   );

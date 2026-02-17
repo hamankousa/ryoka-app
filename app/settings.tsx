@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { APP_THEME_MODES, MIDI_GUIDE_LOOKAHEAD_OPTIONS } from "../src/domain/appSettings";
 import { useAppSettings } from "../src/features/settings/SettingsContext";
@@ -13,6 +13,39 @@ const THEME_MODE_LABEL: Record<(typeof APP_THEME_MODES)[number], string> = {
 export default function SettingsScreen() {
   const { settings, palette, loaded, setFilterAutoCollapseEnabled, setLiquidGlassEnabled, setMidiGuideLookAheadSec, setThemeMode } =
     useAppSettings();
+  const sectionAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    if (!loaded) {
+      return;
+    }
+    for (const value of sectionAnims) {
+      value.setValue(0);
+    }
+    Animated.stagger(
+      70,
+      sectionAnims.map((value) =>
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+  }, [loaded, sectionAnims]);
+
+  const animatedSectionStyle = (index: number) => ({
+    opacity: sectionAnims[index],
+    transform: [
+      {
+        translateY: sectionAnims[index].interpolate({
+          inputRange: [0, 1],
+          outputRange: [14, 0],
+        }),
+      },
+    ],
+  });
 
   const hintColor = palette.textSecondary;
   const dynamicStyles = useMemo(
@@ -65,12 +98,15 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, dynamicStyles.container]}>
-      <Text style={[styles.pageTitle, dynamicStyles.title]}>表示と再生の設定</Text>
-      <Text style={[styles.pageDescription, dynamicStyles.hint]}>
-        見た目と検索挙動、MIDIガイドの表示レンジを変更できます。
-      </Text>
+      <Animated.View style={animatedSectionStyle(0)}>
+        <Text style={[styles.pageTitle, dynamicStyles.title]}>表示と再生の設定</Text>
+        <Text style={[styles.pageDescription, dynamicStyles.hint]}>
+          見た目と検索挙動、MIDIガイドの表示レンジを変更できます。
+        </Text>
+      </Animated.View>
 
-      <View style={[styles.card, dynamicStyles.card]}>
+      <Animated.View style={animatedSectionStyle(1)}>
+        <View style={[styles.card, dynamicStyles.card]}>
         <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>テーマ</Text>
         <Text style={[styles.sectionHint, dynamicStyles.hint]}>アプリ全体のライト/ダーク表示を選びます。</Text>
         <View style={styles.chipRow}>
@@ -93,9 +129,11 @@ export default function SettingsScreen() {
             </Pressable>
           ))}
         </View>
-      </View>
+        </View>
+      </Animated.View>
 
-      <View style={[styles.card, dynamicStyles.card]}>
+      <Animated.View style={animatedSectionStyle(2)}>
+        <View style={[styles.card, dynamicStyles.card]}>
         <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>プレイヤー表示</Text>
         <View style={styles.row}>
           <View style={styles.rowLabelBlock}>
@@ -142,9 +180,11 @@ export default function SettingsScreen() {
             </Pressable>
           ))}
         </View>
-      </View>
+        </View>
+      </Animated.View>
 
-      <View style={[styles.card, dynamicStyles.card]}>
+      <Animated.View style={animatedSectionStyle(3)}>
+        <View style={[styles.card, dynamicStyles.card]}>
         <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>検索</Text>
         <View style={styles.row}>
           <View style={styles.rowLabelBlock}>
@@ -160,11 +200,14 @@ export default function SettingsScreen() {
             trackColor={{ false: "#94A3B8", true: palette.accent }}
           />
         </View>
-      </View>
+        </View>
+      </Animated.View>
 
-      <Text style={[styles.footerHint, { color: hintColor }]}>
-        変更内容は端末内に保存され、次回起動時も維持されます。
-      </Text>
+      <Animated.View style={animatedSectionStyle(4)}>
+        <Text style={[styles.footerHint, { color: hintColor }]}>
+          変更内容は端末内に保存され、次回起動時も維持されます。
+        </Text>
+      </Animated.View>
     </ScrollView>
   );
 }
