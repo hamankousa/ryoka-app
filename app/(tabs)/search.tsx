@@ -24,7 +24,7 @@ import {
 import { SongManifestItem } from "../../src/domain/manifest";
 import { audioEngine, PlaybackSnapshot } from "../../src/features/player/audioEngine";
 import { playSongWithQueue } from "../../src/features/player/globalPlayer";
-import { AudioSource, getPreferredAudioUrl } from "../../src/features/player/playerStore";
+import { AudioSource, getPlayableAudioCandidates } from "../../src/features/player/playerStore";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { filterSongsByQuery } from "../../src/features/songs/searchSongs";
 import {
@@ -445,7 +445,9 @@ export default function SearchTabScreen() {
                           styles.playButton,
                           styles.playButtonVocal,
                           playbackSnapshot.isPlaying &&
-                            playbackSnapshot.uri === getPreferredAudioUrl(song, undefined, "vocal") &&
+                            getPlayableAudioCandidates(song, undefined, "vocal", {
+                              platformOs: Platform.OS,
+                            }).includes(playbackSnapshot.uri ?? "") &&
                             styles.playButtonActive,
                         ]}
                         onPress={() => {
@@ -459,7 +461,9 @@ export default function SearchTabScreen() {
                           styles.playButton,
                           styles.playButtonPiano,
                           playbackSnapshot.isPlaying &&
-                            playbackSnapshot.uri === getPreferredAudioUrl(song, undefined, "piano") &&
+                            getPlayableAudioCandidates(song, undefined, "piano", {
+                              platformOs: Platform.OS,
+                            }).includes(playbackSnapshot.uri ?? "") &&
                             styles.playButtonActive,
                         ]}
                         onPress={() => {

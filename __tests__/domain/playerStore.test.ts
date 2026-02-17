@@ -1,6 +1,8 @@
 import { SongManifestItem } from "../../src/domain/manifest";
 import {
   createPlayerStore,
+  getPlayableAudioCandidates,
+  getPlayableAudioUrl,
   getPreferredAudioUrl,
 } from "../../src/features/player/playerStore";
 
@@ -33,6 +35,69 @@ describe("getPreferredAudioUrl", () => {
     const current = song("m46");
     const result = getPreferredAudioUrl(current, undefined, "piano");
     expect(result).toBe("https://example.com/piano/m46.mp3");
+  });
+});
+
+describe("getPlayableAudioUrl", () => {
+  it("keeps midi source on android to allow native midi playback", () => {
+    const current: SongManifestItem = {
+      ...song("m60"),
+      audio: {
+        vocalMp3Url: "https://example.com/vocal/m60.mp3",
+        pianoMp3Url: "https://example.com/piano/m60.midi",
+        defaultSource: "vocal",
+      },
+    };
+
+    const result = getPlayableAudioUrl(current, undefined, "piano", { platformOs: "android" });
+    expect(result).toBe("https://example.com/piano/m60.midi");
+  });
+
+  it("keeps midi source on web", () => {
+    const current: SongManifestItem = {
+      ...song("m61"),
+      audio: {
+        vocalMp3Url: "https://example.com/vocal/m61.mp3",
+        pianoMp3Url: "https://example.com/piano/m61.mid",
+        defaultSource: "vocal",
+      },
+    };
+
+    const result = getPlayableAudioUrl(current, undefined, "piano", { platformOs: "web" });
+    expect(result).toBe("https://example.com/piano/m61.mid");
+  });
+});
+
+describe("getPlayableAudioCandidates", () => {
+  it("returns midi and vocal fallback on native when piano source is midi", () => {
+    const current: SongManifestItem = {
+      ...song("m62"),
+      audio: {
+        vocalMp3Url: "https://example.com/vocal/m62.mp3",
+        pianoMp3Url: "https://example.com/piano/m62.midi",
+        defaultSource: "vocal",
+      },
+    };
+
+    const result = getPlayableAudioCandidates(current, undefined, "piano", { platformOs: "android" });
+    expect(result).toEqual([
+      "https://example.com/piano/m62.midi",
+      "https://example.com/vocal/m62.mp3",
+    ]);
+  });
+
+  it("returns only midi on web", () => {
+    const current: SongManifestItem = {
+      ...song("m63"),
+      audio: {
+        vocalMp3Url: "https://example.com/vocal/m63.mp3",
+        pianoMp3Url: "https://example.com/piano/m63.mid",
+        defaultSource: "vocal",
+      },
+    };
+
+    const result = getPlayableAudioCandidates(current, undefined, "piano", { platformOs: "web" });
+    expect(result).toEqual(["https://example.com/piano/m63.mid"]);
   });
 });
 

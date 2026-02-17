@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackStatus } from "expo-av";
+import { Audio, AVPlaybackStatus, AVPlaybackStatusToSet } from "expo-av";
 import { Platform } from "react-native";
 
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
@@ -121,6 +121,23 @@ class AudioEngine {
     return true;
   }
 
+  private resolveInitialStatus(uri: string): AVPlaybackStatusToSet {
+    const base: AVPlaybackStatusToSet = {
+      shouldPlay: true,
+      isLooping: this.snapshot.loopEnabled,
+      progressUpdateIntervalMillis: 250,
+    };
+
+    if (Platform.OS === "android" && isMidiUrl(uri)) {
+      return {
+        ...base,
+        androidImplementation: "MediaPlayer",
+      };
+    }
+
+    return base;
+  }
+
   async play(uri: string) {
     await prepareWebPlaybackSession();
 
@@ -137,11 +154,7 @@ class AudioEngine {
 
       const created = await Audio.Sound.createAsync(
         { uri },
-        {
-          shouldPlay: true,
-          isLooping: this.snapshot.loopEnabled,
-          progressUpdateIntervalMillis: 250,
-        },
+        this.resolveInitialStatus(uri),
         this.onStatusUpdate
       );
       this.sound = created.sound;

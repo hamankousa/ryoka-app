@@ -1,4 +1,5 @@
 import { SongManifestItem } from "../../domain/manifest";
+import { isMidiUrl } from "./audioSource";
 
 export type AudioSource = "vocal" | "piano";
 
@@ -17,6 +18,10 @@ export type PlayerState = {
   source: AudioSource;
 };
 
+export type PlayableAudioUrlOptions = {
+  platformOs?: string;
+};
+
 export function getPreferredAudioUrl(
   song: SongManifestItem,
   offline?: OfflineAudioEntry,
@@ -32,6 +37,39 @@ export function getPreferredAudioUrl(
   }
 
   return source === "piano" ? song.audio.pianoMp3Url : song.audio.vocalMp3Url;
+}
+
+export function getPlayableAudioUrl(
+  song: SongManifestItem,
+  offline?: OfflineAudioEntry,
+  source: AudioSource = song.audio.defaultSource,
+  options?: PlayableAudioUrlOptions
+) {
+  return getPlayableAudioCandidates(song, offline, source, options)[0];
+}
+
+export function getPlayableAudioCandidates(
+  song: SongManifestItem,
+  offline?: OfflineAudioEntry,
+  source: AudioSource = song.audio.defaultSource,
+  options?: PlayableAudioUrlOptions
+) {
+  const preferred = getPreferredAudioUrl(song, offline, source);
+  if (source !== "piano" || !isMidiUrl(preferred)) {
+    return [preferred];
+  }
+
+  const platformOs = options?.platformOs;
+  if (!platformOs || platformOs === "web") {
+    return [preferred];
+  }
+
+  const fallbackVocal = getPreferredAudioUrl(song, offline, "vocal");
+  if (fallbackVocal === preferred) {
+    return [preferred];
+  }
+
+  return [preferred, fallbackVocal];
 }
 
 export function createPlayerStore(initialSource: AudioSource = "vocal") {

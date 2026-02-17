@@ -1,6 +1,7 @@
 import { SongManifestItem } from "../../domain/manifest";
+import { Platform } from "react-native";
 import { audioEngine } from "./audioEngine";
-import { AudioSource, createPlayerStore, getPreferredAudioUrl } from "./playerStore";
+import { AudioSource, createPlayerStore, getPlayableAudioCandidates } from "./playerStore";
 
 export type LoopMode = "off" | "playlist" | "track";
 
@@ -51,10 +52,13 @@ async function playCurrentFromStore(toggleIfSame: boolean) {
     return;
   }
 
-  const uri = getPreferredAudioUrl(store.currentSong, undefined, store.source);
+  const candidates = getPlayableAudioCandidates(store.currentSong, undefined, store.source, {
+    platformOs: Platform.OS,
+  });
+  const primaryUri = candidates[0];
   const snap = audioEngine.getSnapshot();
 
-  if (toggleIfSame && snap.uri === uri) {
+  if (toggleIfSame && snap.uri === primaryUri) {
     if (snap.isPlaying) {
       await audioEngine.pause();
     } else {
@@ -64,8 +68,18 @@ async function playCurrentFromStore(toggleIfSame: boolean) {
     return;
   }
 
-  await audioEngine.play(uri);
-  syncStateFromStore();
+  let lastError: unknown;
+  for (const uri of candidates) {
+    try {
+      await audioEngine.play(uri);
+      syncStateFromStore();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("playback failed");
 }
 
 async function handleTrackFinished() {

@@ -16,7 +16,7 @@ import { downloadService } from "../src/features/download/downloadService";
 import { getSongDownloadState } from "../src/features/download/downloadState";
 import { OfflineEntry } from "../src/features/offline/offlineRepo";
 import { audioEngine, PlaybackSnapshot } from "../src/features/player/audioEngine";
-import { AudioSource, createPlayerStore, getPreferredAudioUrl } from "../src/features/player/playerStore";
+import { AudioSource, createPlayerStore, getPlayableAudioCandidates } from "../src/features/player/playerStore";
 import { MidiTimbre } from "../src/features/player/webMidiEngine";
 import { loadSongs } from "../src/features/songs/loadSongs";
 import { filterSongsByQuery } from "../src/features/songs/searchSongs";
@@ -250,10 +250,30 @@ export default function SongsScreen() {
     }
     playerStore.setQueue(songs, index);
     playerStore.setSource(source);
-    const uri = getPreferredAudioUrl(song, toOfflineAudioEntry(song.id, offlineEntries[song.id]), source);
+    const candidates = getPlayableAudioCandidates(
+      song,
+      toOfflineAudioEntry(song.id, offlineEntries[song.id]),
+      source,
+      {
+        platformOs: Platform.OS,
+      }
+    );
 
     try {
-      await audioEngine.play(uri);
+      let played = false;
+      let lastError: unknown = null;
+      for (const uri of candidates) {
+        try {
+          await audioEngine.play(uri);
+          played = true;
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (!played) {
+        throw lastError instanceof Error ? lastError : new Error("再生に失敗しました。");
+      }
       setPlaybackError(null);
       setCurrentSongTitle(song.title);
       setCurrentSource(source);

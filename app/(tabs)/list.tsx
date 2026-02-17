@@ -1,11 +1,11 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { SongManifestItem } from "../../src/domain/manifest";
 import { audioEngine, PlaybackSnapshot } from "../../src/features/player/audioEngine";
 import { playSongWithQueue } from "../../src/features/player/globalPlayer";
-import { AudioSource, getPreferredAudioUrl } from "../../src/features/player/playerStore";
+import { AudioSource, getPlayableAudioCandidates } from "../../src/features/player/playerStore";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { ERA_ORDER, getEraKey, getEraLabel } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
@@ -117,7 +117,9 @@ export default function ListTabScreen() {
                           styles.playButton,
                           styles.playButtonVocal,
                           playbackSnapshot.isPlaying &&
-                            playbackSnapshot.uri === getPreferredAudioUrl(song, undefined, "vocal") &&
+                            getPlayableAudioCandidates(song, undefined, "vocal", {
+                              platformOs: Platform.OS,
+                            }).includes(playbackSnapshot.uri ?? "") &&
                             styles.playButtonActive,
                         ]}
                         onPress={() => {
@@ -131,7 +133,9 @@ export default function ListTabScreen() {
                           styles.playButton,
                           styles.playButtonPiano,
                           playbackSnapshot.isPlaying &&
-                            playbackSnapshot.uri === getPreferredAudioUrl(song, undefined, "piano") &&
+                            getPlayableAudioCandidates(song, undefined, "piano", {
+                              platformOs: Platform.OS,
+                            }).includes(playbackSnapshot.uri ?? "") &&
                             styles.playButtonActive,
                         ]}
                         onPress={() => {
