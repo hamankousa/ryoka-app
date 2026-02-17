@@ -3,21 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
-import { SongManifestItem } from "../../src/domain/manifest";
-import { resolveLyricsSource } from "../../src/features/lyrics/resolveLyricsSource";
-import { sanitizeLyricsInlineHtml } from "../../src/features/lyrics/sanitizeLyricsInlineHtml";
-import { loadSongs } from "../../src/features/songs/loadSongs";
-import { createManifestRepository } from "../../src/infra/manifestRepository";
-import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { SongManifestItem } from "../../../src/domain/manifest";
+import { resolveLyricsSource } from "../../../src/features/lyrics/resolveLyricsSource";
+import { buildStyledLyricsHtml } from "../../../src/features/lyrics/sanitizeLyricsInlineHtml";
+import { loadSongs } from "../../../src/features/songs/loadSongs";
+import { createManifestRepository } from "../../../src/infra/manifestRepository";
+import { useAppSettings } from "../../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 
 function LyricsHtmlOnWeb({ html }: { html: string }) {
-  return <div dangerouslySetInnerHTML={{ __html: sanitizeLyricsInlineHtml(html) }} />;
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 export default function LyricsScreen() {
-  const { palette } = useAppSettings();
+  const { palette, resolvedTheme } = useAppSettings();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
   const [inlineHtml, setInlineHtml] = useState<string | null>(null);
@@ -70,6 +70,20 @@ export default function LyricsScreen() {
     return resolveLyricsSource(song, undefined, inlineHtml ?? undefined);
   }, [song, inlineHtml]);
 
+  const styledInlineHtml = useMemo(() => {
+    if (source?.type !== "html") {
+      return "";
+    }
+    const isDark = resolvedTheme === "dark";
+    return buildStyledLyricsHtml(source.html, {
+      textColor: isDark ? "#E2E8F0" : "#1E293B",
+      subTextColor: isDark ? "#94A3B8" : "#64748B",
+      borderColor: isDark ? "#334155" : "#E2E8F0",
+      lineHeight: 1.38,
+      fontSizePx: 14,
+    });
+  }, [resolvedTheme, source]);
+
   if (errorMessage) {
     return (
       <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
@@ -91,7 +105,7 @@ export default function LyricsScreen() {
       <ScrollView
         contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
       >
-        <LyricsHtmlOnWeb html={source.html} />
+        <LyricsHtmlOnWeb html={styledInlineHtml} />
       </ScrollView>
     );
   }

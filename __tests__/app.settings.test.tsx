@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
-import SettingsScreen from "../app/settings";
+import SettingsScreen from "../app/(tabs)/settings";
 
 const setThemeMode = jest.fn();
 const setLiquidGlassEnabled = jest.fn();

@@ -66,6 +66,7 @@ describe("MiniPlayer", () => {
 
     expect(screen.getByTestId("mini-player-expanded-scroll")).toBeTruthy();
     expect(screen.getByTestId("mini-player-drag-handle-touch")).toBeTruthy();
+    expect(screen.getByTestId("mini-player-lyrics-resize-handle")).toBeTruthy();
   });
 
   it("switches source from expanded controls", () => {

@@ -81,6 +81,9 @@ export default function TabLayout() {
       <Tabs.Screen name="search" options={{ title: "検索", headerTitle: "曲を検索" }} />
       <Tabs.Screen name="list" options={{ title: "一覧", headerTitle: "曲一覧" }} />
       <Tabs.Screen name="library" options={{ title: "ライブラリ", headerTitle: "マイライブラリ" }} />
+      <Tabs.Screen name="settings" options={{ href: null, title: "設定", headerTitle: "設定" }} />
+      <Tabs.Screen name="lyrics/[songId]" options={{ href: null, title: "歌詞", headerTitle: "歌詞" }} />
+      <Tabs.Screen name="score/[songId]" options={{ href: null, title: "楽譜", headerTitle: "楽譜" }} />
     </Tabs>
   );
 }

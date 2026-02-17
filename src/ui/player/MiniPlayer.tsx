@@ -17,7 +17,7 @@ import { WebView } from "react-native-webview";
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { ResolvedThemeMode } from "../../domain/appSettings";
 import { getThemePalette, ThemePalette } from "../../domain/themePalette";
-import { sanitizeLyricsInlineHtml } from "../../features/lyrics/sanitizeLyricsInlineHtml";
+import { buildStyledLyricsHtml } from "../../features/lyrics/sanitizeLyricsInlineHtml";
 import { MAX_TEMPO_RATE, MIN_TEMPO_RATE, ratioToTempoRate, tempoRateToRatio } from "../../features/player/midiTransport";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
 import { MidiPitchGuide } from "./MidiPitchGuide";
@@ -82,6 +82,9 @@ const DRAG_CLOSE_DISTANCE = 140;
 const DRAG_CLOSE_VELOCITY = 1.1;
 const DRAG_OPEN_OFFSET = 24;
 const DRAG_CLOSE_ANIMATION_TO = 420;
+const LYRICS_PANEL_MIN_HEIGHT = 220;
+const LYRICS_PANEL_MAX_HEIGHT_FALLBACK = 520;
+const LYRICS_PANEL_AUTO_RATIO = 0.42;
 const CONTROL_CENTER_OFFSETS = {
   shuffle: -148,
   prev: -84,
@@ -116,6 +119,14 @@ function resolveSeekPosition(locationX: number | undefined, trackWidth: number, 
     return null;
   }
   return ratio * durationSec;
+}
+
+function clampLyricsPanelHeight(height: number, sheetHeight: number) {
+  const dynamicMax =
+    sheetHeight > 0
+      ? Math.max(LYRICS_PANEL_MIN_HEIGHT + 40, sheetHeight - 280)
+      : LYRICS_PANEL_MAX_HEIGHT_FALLBACK;
+  return Math.min(dynamicMax, Math.max(LYRICS_PANEL_MIN_HEIGHT, Math.round(height)));
 }
 
 export function MiniPlayer({
@@ -161,7 +172,12 @@ export function MiniPlayer({
   const [seekWidth, setSeekWidth] = useState(0);
   const [collapsedSeekWidth, setCollapsedSeekWidth] = useState(0);
   const [tempoWidth, setTempoWidth] = useState(0);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const [lyricsPanelHeight, setLyricsPanelHeight] = useState(280);
   const tempoRatioRef = useRef(0);
+  const lyricsPanelHeightRef = useRef(280);
+  const resizeStartHeightRef = useRef(280);
+  const lyricsPanelAdjustedByUserRef = useRef(false);
 
   const ratio = useMemo(() => {
     if (!durationSec || durationSec <= 0) {
@@ -176,16 +192,20 @@ export function MiniPlayer({
   const loopLabel = effectiveLoopMode === "track" ? `${ICON_LOOP}1` : ICON_LOOP;
   const isDark = resolvedTheme === "dark";
   const backdropColor = isDark ? "rgba(2,6,23,0.72)" : "rgba(15,23,42,0.36)";
-  const lyricsHtmlColor = isDark ? "#E2E8F0" : "#1E293B";
   const optionActiveColor = isDark ? "rgba(34,211,238,0.18)" : "#DBEAFE";
   const glassOptionBackground = isDark ? "rgba(15,23,42,0.52)" : "rgba(255,255,255,0.34)";
   const glassOptionBorder = isDark ? "rgba(148,163,184,0.48)" : "rgba(255,255,255,0.62)";
   const glassPanelBackground = isDark ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.46)";
   const glassPanelBorder = isDark ? "rgba(148,163,184,0.52)" : "rgba(255,255,255,0.7)";
-  const inlineLyricsHtml = useMemo(
-    () => sanitizeLyricsInlineHtml(lyricsHtml ?? "<p>歌詞を読み込み中...</p>"),
-    [lyricsHtml]
-  );
+  const inlineLyricsHtml = useMemo(() => {
+    return buildStyledLyricsHtml(lyricsHtml ?? "<p>歌詞を読み込み中...</p>", {
+      textColor: isDark ? "#E2E8F0" : "#1E293B",
+      subTextColor: isDark ? "#94A3B8" : "#64748B",
+      borderColor: isDark ? "#334155" : "#E2E8F0",
+      lineHeight: 1.36,
+      fontSizePx: 13,
+    });
+  }, [isDark, lyricsHtml]);
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
   const dragStartOffsetRef = useRef(0);
   const isDragClosingRef = useRef(false);
@@ -297,20 +317,70 @@ export function MiniPlayer({
     [closeByDrag, restoreSheetPosition, sheetTranslateY]
   );
 
+  const updateLyricsPanelHeight = useCallback(
+    (nextHeight: number, markAsUserAdjusted: boolean) => {
+      const clamped = clampLyricsPanelHeight(nextHeight, sheetHeight);
+      lyricsPanelHeightRef.current = clamped;
+      setLyricsPanelHeight(clamped);
+      if (markAsUserAdjusted) {
+        lyricsPanelAdjustedByUserRef.current = true;
+      }
+    },
+    [sheetHeight]
+  );
+
+  const lyricsResizeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) => {
+          const verticalDistance = Math.abs(gestureState.dy);
+          const horizontalDistance = Math.abs(gestureState.dx);
+          return verticalDistance > 4 && verticalDistance > horizontalDistance;
+        },
+        onPanResponderGrant: () => {
+          resizeStartHeightRef.current = lyricsPanelHeightRef.current;
+        },
+        onPanResponderMove: (_event, gestureState) => {
+          updateLyricsPanelHeight(resizeStartHeightRef.current - gestureState.dy, false);
+        },
+        onPanResponderRelease: () => {
+          lyricsPanelAdjustedByUserRef.current = true;
+        },
+        onPanResponderTerminate: () => {
+          lyricsPanelAdjustedByUserRef.current = true;
+        },
+      }),
+    [updateLyricsPanelHeight]
+  );
+
+  const applyAutoLyricsPanelHeight = useCallback(() => {
+    if (lyricsPanelAdjustedByUserRef.current) {
+      return;
+    }
+    const base = sheetHeight > 0 ? sheetHeight * LYRICS_PANEL_AUTO_RATIO : 280;
+    updateLyricsPanelHeight(base, false);
+  }, [sheetHeight, updateLyricsPanelHeight]);
+
   useEffect(() => {
     if (!isExpanded) {
       sheetTranslateY.stopAnimation();
       sheetTranslateY.setValue(0);
+      lyricsPanelAdjustedByUserRef.current = false;
       return;
     }
     sheetTranslateY.setValue(DRAG_OPEN_OFFSET);
+    applyAutoLyricsPanelHeight();
     Animated.timing(sheetTranslateY, {
       toValue: 0,
       duration: 220,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [isExpanded, sheetTranslateY]);
+  }, [applyAutoLyricsPanelHeight, isExpanded, sheetTranslateY]);
+
+  useEffect(() => {
+    applyAutoLyricsPanelHeight();
+  }, [applyAutoLyricsPanelHeight]);
 
   return (
     <>
@@ -374,6 +444,7 @@ export function MiniPlayer({
                 { backgroundColor: glassPanelBackground, borderColor: glassPanelBorder },
               ],
             ]}
+            onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)}
           >
             <View style={styles.sheetHeader}>
               <View
@@ -399,6 +470,7 @@ export function MiniPlayer({
                 <View
                   style={[
                     styles.topLyricsPanel,
+                    { height: lyricsPanelHeight },
                     { backgroundColor: palette.surfaceBackground, borderColor: palette.border },
                     liquidGlassEnabled && [
                       styles.glassPanel,
@@ -407,21 +479,27 @@ export function MiniPlayer({
                   ]}
                 >
                   <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>歌詞</Text>
-                  {Platform.OS === "web" ? (
-                    <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
-                      {/* eslint-disable-next-line react/no-danger */}
-                      <div
-                        style={{ fontSize: 13, lineHeight: 1.6, color: lyricsHtmlColor }}
-                        dangerouslySetInnerHTML={{ __html: inlineLyricsHtml }}
+                  <View style={styles.lyricsBody}>
+                    {Platform.OS === "web" ? (
+                      <ScrollView style={styles.lyricsScroll} contentContainerStyle={styles.lyricsContent}>
+                        {/* eslint-disable-next-line react/no-danger */}
+                        <div dangerouslySetInnerHTML={{ __html: inlineLyricsHtml }} />
+                      </ScrollView>
+                    ) : (
+                      <WebView
+                        originWhitelist={["*"]}
+                        source={{ html: inlineLyricsHtml }}
+                        style={[styles.lyricsWebView, { backgroundColor: palette.surfaceBackground }]}
                       />
-                    </ScrollView>
-                  ) : (
-                    <WebView
-                      originWhitelist={["*"]}
-                      source={{ html: lyricsHtml ?? "<p>歌詞を読み込み中...</p>" }}
-                      style={[styles.lyricsWebView, { backgroundColor: palette.surfaceBackground }]}
-                    />
-                  )}
+                    )}
+                  </View>
+                  <View
+                    testID="mini-player-lyrics-resize-handle"
+                    style={styles.lyricsResizeHandleTouch}
+                    {...lyricsResizeResponder.panHandlers}
+                  >
+                    <View style={[styles.lyricsResizeHandle, { backgroundColor: palette.textSecondary }]} />
+                  </View>
                 </View>
                 <Text style={[styles.title, { color: palette.textPrimary }]}>{title ?? "未選択"}</Text>
                 <Text style={[styles.source, { color: palette.textSecondary }]}>{sourceLabel ?? "-"}</Text>
@@ -844,6 +922,23 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontSize: 12,
   },
+  lyricsBody: {
+    flex: 1,
+    minHeight: 0,
+  },
+  lyricsResizeHandle: {
+    borderRadius: 99,
+    height: 4,
+    opacity: 0.85,
+    width: 56,
+  },
+  lyricsResizeHandleTouch: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 18,
+    paddingTop: 2,
+    width: "100%",
+  },
   lyricsScroll: {
     flex: 1,
   },
@@ -999,10 +1094,11 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     borderRadius: 14,
     borderWidth: 1,
-    height: 240,
     marginBottom: 14,
     overflow: "hidden",
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
     width: "100%",
   },
   tempoFill: {

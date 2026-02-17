@@ -16,9 +16,6 @@ function RootNavigator() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ title: "設定" }} />
-      <Stack.Screen name="lyrics/[songId]" options={{ title: "歌詞" }} />
-      <Stack.Screen name="score/[songId]" options={{ title: "楽譜" }} />
     </Stack>
   );
 }

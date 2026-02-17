@@ -38,6 +38,7 @@ npm run test
 ## ドキュメント
 
 - 開発手順: `docs/development-guide.md`
+- Web公開手順（Cloudflare Pages）: `docs/deploy-cloudflare-pages.md`
 - セットアップ/変更ログ: `docs/setup-log.md`
 - 重要判断ログ: `docs/decision-log.md`
 - 手動起動マニュアル: `docs/local-run-manual.md`

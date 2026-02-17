@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
-import { APP_THEME_MODES, MIDI_GUIDE_LOOKAHEAD_OPTIONS } from "../src/domain/appSettings";
-import { useAppSettings } from "../src/features/settings/SettingsContext";
+import { APP_THEME_MODES, MIDI_GUIDE_LOOKAHEAD_OPTIONS } from "../../src/domain/appSettings";
+import { useAppSettings } from "../../src/features/settings/SettingsContext";
 
 const THEME_MODE_LABEL: Record<(typeof APP_THEME_MODES)[number], string> = {
   system: "端末依存",
