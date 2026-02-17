@@ -1,5 +1,6 @@
 import {
   createManifestRepository,
+  getManifestBaseUrl,
   MemoryManifestCache,
 } from "../../src/infra/manifestRepository";
 
@@ -90,5 +91,71 @@ describe("manifestRepository", () => {
     await expect(repo.getManifest()).rejects.toThrow(
       "npx serve . -l 8787 --cors"
     );
+  });
+});
+
+describe("getManifestBaseUrl", () => {
+  const originalLocation = (globalThis as typeof globalThis & { location?: { hostname?: string } }).location;
+  const originalExpoBase = process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
+  const originalManifestBase = process.env.MANIFEST_BASE_URL;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  const setLocationHost = (hostname: string) => {
+    Object.defineProperty(globalThis, "location", {
+      value: { hostname },
+      configurable: true,
+    });
+  };
+
+  afterEach(() => {
+    if (originalLocation) {
+      Object.defineProperty(globalThis, "location", {
+        value: originalLocation,
+        configurable: true,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "location");
+    }
+
+    if (originalExpoBase === undefined) {
+      delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
+    } else {
+      process.env.EXPO_PUBLIC_MANIFEST_BASE_URL = originalExpoBase;
+    }
+
+    if (originalManifestBase === undefined) {
+      delete process.env.MANIFEST_BASE_URL;
+    } else {
+      process.env.MANIFEST_BASE_URL = originalManifestBase;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
+  it("prefers EXPO_PUBLIC_MANIFEST_BASE_URL from env", () => {
+    process.env.EXPO_PUBLIC_MANIFEST_BASE_URL = "https://example.com/content";
+    expect(getManifestBaseUrl()).toBe("https://example.com/content/");
+  });
+
+  it("uses public content host on non-local web host", () => {
+    delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
+    delete process.env.MANIFEST_BASE_URL;
+    process.env.NODE_ENV = "test";
+    setLocationHost("ryoka-app.pages.dev");
+
+    expect(getManifestBaseUrl()).toBe("https://ryoka-content.pages.dev/");
+  });
+
+  it("uses localhost in local development", () => {
+    delete process.env.EXPO_PUBLIC_MANIFEST_BASE_URL;
+    delete process.env.MANIFEST_BASE_URL;
+    process.env.NODE_ENV = "test";
+    setLocationHost("localhost");
+
+    expect(getManifestBaseUrl()).toBe("http://localhost:8787/ryoka-content/");
   });
 });

@@ -2,8 +2,10 @@ import { Manifest, parseManifest } from "../domain/manifest";
 
 const MANIFEST_CACHE_KEY = "manifest_cache_v1";
 const MANIFEST_URL_PATH = "manifest.json";
+const LOCAL_MANIFEST_BASE_URL = "http://localhost:8787/ryoka-content/";
+const PUBLIC_MANIFEST_BASE_URL = "https://ryoka-content.pages.dev/";
 const WEB_CORS_HELP =
-  "Web fetch failed. Start content server with `npx serve . -l 8787 --cors`.";
+  "Web fetch failed. Check EXPO_PUBLIC_MANIFEST_BASE_URL, or for local dev start `npx serve . -l 8787 --cors`.";
 
 type FetchLike = typeof fetch;
 
@@ -66,7 +68,20 @@ export function getManifestBaseUrl() {
   if (fromEnv && fromEnv.trim().length > 0) {
     return fromEnv.trim().endsWith("/") ? fromEnv.trim() : `${fromEnv.trim()}/`;
   }
-  return "http://localhost:8787/ryoka-content/";
+
+  const withLocation = globalThis as typeof globalThis & {
+    location?: { hostname?: string };
+  };
+  const hostname = withLocation.location?.hostname?.toLowerCase();
+  if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
+    return PUBLIC_MANIFEST_BASE_URL;
+  }
+
+  if (withProcess.process?.env?.NODE_ENV === "production") {
+    return PUBLIC_MANIFEST_BASE_URL;
+  }
+
+  return LOCAL_MANIFEST_BASE_URL;
 }
 
 export function createManifestRepository({
