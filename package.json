@@ -7,6 +7,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:android:preview": "npx eas-cli build --platform android --profile preview",
+    "build:android:production": "npx eas-cli build --platform android --profile production",
+    "submit:android:production": "npx eas-cli submit --platform android --profile production",
     "test": "jest",
     "test:watch": "jest --watch"
   },

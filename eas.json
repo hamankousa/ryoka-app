@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_MANIFEST_BASE_URL": "https://ryoka-content.pages.dev/"
+      }
+    },
+    "ci-apk": {
+      "extends": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_MANIFEST_BASE_URL": "https://ryoka-content.pages.dev/"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

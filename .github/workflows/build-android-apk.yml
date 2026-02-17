@@ -1,0 +1,86 @@
+name: Build Android APK (EAS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: eas.json profile name
+        required: true
+        default: ci-apk
+      wait_for_completion:
+        description: Wait for cloud build completion
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$EXPO_TOKEN" || (echo "Missing EXPO_TOKEN" && exit 1)
+          test -n "$ANDROID_UPLOAD_KEYSTORE_BASE64" || (echo "Missing ANDROID_UPLOAD_KEYSTORE_BASE64" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$ANDROID_KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
+          test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
+
+      - name: Prepare local Android credentials
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p credentials
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 --decode > credentials/android-upload-key.jks
+          cat > credentials.json <<EOF
+          {
+            "android": {
+              "keystore": {
+                "keystorePath": "./credentials/android-upload-key.jks",
+                "keystorePassword": "$ANDROID_KEYSTORE_PASSWORD",
+                "keyAlias": "$ANDROID_KEY_ALIAS",
+                "keyPassword": "$ANDROID_KEY_PASSWORD"
+              }
+            }
+          }
+          EOF
+
+      - name: Trigger EAS build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ "${{ inputs.wait_for_completion }}" = "true" ]; then
+            npx eas-cli build --platform android --profile "${{ inputs.profile }}" --non-interactive
+          else
+            npx eas-cli build --platform android --profile "${{ inputs.profile }}" --non-interactive --no-wait
+          fi
+
+      - name: Show latest build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli build:list --platform android --limit 1 --non-interactive --json > build-list.json
+          node -e "const fs=require('fs');const list=JSON.parse(fs.readFileSync('build-list.json','utf8'));const b=list[0];if(!b){process.exit(1)};console.log('Build ID:',b.id);console.log('Status:',b.status);console.log('Commit:',b.gitCommitHash);console.log('Open: https://expo.dev/accounts/hamankousa/projects/ryoka-app/builds/'+b.id);"
