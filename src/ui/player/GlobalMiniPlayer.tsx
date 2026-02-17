@@ -11,6 +11,7 @@ import {
   subscribeGlobalPlayer,
   toggleShuffleGlobal,
 } from "../../features/player/globalPlayer";
+import { useAppSettings } from "../../features/settings/SettingsContext";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
 import { MiniPlayer } from "./MiniPlayer";
 
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export function GlobalMiniPlayer({ liquidGlassEnabled = false, midiGuideLookAheadSec = 5 }: Props) {
+  const { palette, resolvedTheme } = useAppSettings();
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(audioEngine.getSnapshot());
   const [playerState, setPlayerState] = useState(getGlobalPlayerState());
   const [isExpanded, setIsExpanded] = useState(false);
@@ -93,6 +95,8 @@ export function GlobalMiniPlayer({ liquidGlassEnabled = false, midiGuideLookAhea
       isExpanded={isExpanded}
       liquidGlassEnabled={liquidGlassEnabled}
       midiGuideLookAheadSec={midiGuideLookAheadSec}
+      palette={palette}
+      resolvedTheme={resolvedTheme}
       onExpand={() => setIsExpanded(true)}
       onCollapse={() => setIsExpanded(false)}
       onPlayPause={() => {

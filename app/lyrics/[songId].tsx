@@ -5,6 +5,7 @@ import { WebView } from "react-native-webview";
 
 import { SongManifestItem } from "../../src/domain/manifest";
 import { resolveLyricsSource } from "../../src/features/lyrics/resolveLyricsSource";
+import { sanitizeLyricsInlineHtml } from "../../src/features/lyrics/sanitizeLyricsInlineHtml";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
@@ -12,7 +13,7 @@ import { useAppSettings } from "../../src/features/settings/SettingsContext";
 const manifestRepository = createManifestRepository({});
 
 function LyricsHtmlOnWeb({ html }: { html: string }) {
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div dangerouslySetInnerHTML={{ __html: sanitizeLyricsInlineHtml(html) }} />;
 }
 
 export default function LyricsScreen() {

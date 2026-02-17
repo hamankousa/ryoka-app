@@ -65,6 +65,7 @@ describe("MiniPlayer", () => {
     render(<MiniPlayer {...props} isExpanded />);
 
     expect(screen.getByTestId("mini-player-expanded-scroll")).toBeTruthy();
+    expect(screen.getByTestId("mini-player-drag-handle-touch")).toBeTruthy();
   });
 
   it("switches source from expanded controls", () => {

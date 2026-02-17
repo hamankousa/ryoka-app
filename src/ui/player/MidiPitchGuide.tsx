@@ -1,26 +1,44 @@
 import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { ResolvedThemeMode } from "../../domain/appSettings";
 import { buildMidiPitchGuideFrame, MidiPitchGuideNote } from "../../domain/midiPitchGuide";
+import { ThemePalette, getThemePalette } from "../../domain/themePalette";
 
 type Props = {
   notes: MidiPitchGuideNote[];
   positionSec: number;
   durationSec?: number;
   lookAheadSec?: number;
+  palette?: ThemePalette;
+  resolvedTheme?: ResolvedThemeMode;
 };
 
-export function MidiPitchGuide({ notes, positionSec, durationSec, lookAheadSec }: Props) {
+export function MidiPitchGuide({
+  notes,
+  positionSec,
+  durationSec,
+  lookAheadSec,
+  palette = getThemePalette("light"),
+  resolvedTheme = "light",
+}: Props) {
   const frame = useMemo(
     () => buildMidiPitchGuideFrame(notes, positionSec, { durationSec, lookAheadSec }),
     [durationSec, lookAheadSec, notes, positionSec]
   );
+  const isDark = resolvedTheme === "dark";
   if (notes.length === 0) {
     return null;
   }
 
   return (
-    <View testID="mini-player-midi-pitch-guide" style={styles.root}>
+    <View
+      testID="mini-player-midi-pitch-guide"
+      style={[
+        styles.root,
+        { backgroundColor: isDark ? "#0F1A30" : "#E0F2FE", borderColor: isDark ? palette.border : "#BAE6FD" },
+      ]}
+    >
       {frame.bars.map((bar, index) => (
         <View
           key={`${bar.noteNumber}:${bar.startSec}:${index}`}
@@ -32,14 +50,14 @@ export function MidiPitchGuide({ notes, positionSec, durationSec, lookAheadSec }
               width: `${bar.widthRatio * 100}%`,
               top: `${bar.topRatio * 100}%`,
               height: `${bar.heightRatio * 100}%`,
+              backgroundColor: bar.isActive ? palette.accent : isDark ? "#0EA5E9" : "#7DD3FC",
             },
-            bar.isActive && styles.barActive,
           ]}
         />
       ))}
       <View
         testID="mini-player-midi-pitch-playhead"
-        style={[styles.playhead, { left: `${frame.playheadRatio * 100}%` }]}
+        style={[styles.playhead, { left: `${frame.playheadRatio * 100}%`, backgroundColor: palette.textPrimary }]}
       />
     </View>
   );
@@ -47,15 +65,10 @@ export function MidiPitchGuide({ notes, positionSec, durationSec, lookAheadSec }
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: "#7DD3FC",
     borderRadius: 5,
     position: "absolute",
   },
-  barActive: {
-    backgroundColor: "#0284C7",
-  },
   playhead: {
-    backgroundColor: "#0F172A",
     bottom: 0,
     marginLeft: -1,
     opacity: 0.8,
@@ -64,8 +77,6 @@ const styles = StyleSheet.create({
     width: 2,
   },
   root: {
-    backgroundColor: "#E0F2FE",
-    borderColor: "#BAE6FD",
     borderRadius: 12,
     borderWidth: 1,
     height: 98,
