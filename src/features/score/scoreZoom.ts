@@ -16,3 +16,62 @@ export function buildScoreZoomUrl(uri: string, zoomPercent: number): string {
   return `${base}#zoom=${clamped}`;
 }
 
+function escapeHtmlAttribute(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function buildScoreViewerHtml(uri: string, zoomPercent: number): string {
+  const clamped = clampScoreZoom(zoomPercent);
+  const scale = clamped / 100;
+  const inverseScalePercent = 100 / scale;
+  const safeUri = escapeHtmlAttribute(uri);
+
+  return `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background: #0f172a;
+    }
+    .viewer-root {
+      width: 100%;
+      min-height: 100%;
+      overflow: auto;
+      padding: 0;
+      box-sizing: border-box;
+      background: #0f172a;
+    }
+    .viewer-scale {
+      width: ${inverseScalePercent}%;
+      min-height: ${inverseScalePercent}%;
+      transform: scale(${scale});
+      transform-origin: top left;
+    }
+    .pdf-frame {
+      border: 0;
+      width: 100%;
+      min-height: 100vh;
+      display: block;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewer-root">
+    <div class="viewer-scale">
+      <iframe class="pdf-frame" src="${safeUri}" title="score-pdf"></iframe>
+    </div>
+  </div>
+</body>
+</html>`;
+}

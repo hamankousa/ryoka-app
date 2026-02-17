@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
@@ -7,6 +7,7 @@ import { SongManifestItem } from "../../../src/domain/manifest";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { resolveScoreSource } from "../../../src/features/score/resolveScoreSource";
 import {
+  buildScoreViewerHtml,
   buildScoreZoomUrl,
   clampScoreZoom,
   SCORE_ZOOM_DEFAULT,
@@ -19,12 +20,8 @@ import { useAppSettings } from "../../../src/features/settings/SettingsContext";
 
 const manifestRepository = createManifestRepository({});
 
-function ScoreFrameOnWeb({ uri }: { uri: string }) {
-  return createElement("iframe", {
-    src: uri,
-    style: { border: "none", height: "100vh", width: "100%" },
-    title: "score-pdf",
-  });
+function ScoreFrameOnWeb({ html }: { html: string }) {
+  return <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 export default function ScoreScreen() {
@@ -69,6 +66,13 @@ export default function ScoreScreen() {
       return null;
     }
     return buildScoreZoomUrl(sourceUri, zoomPercent);
+  }, [sourceUri, zoomPercent]);
+
+  const webViewerHtml = useMemo(() => {
+    if (!sourceUri) {
+      return null;
+    }
+    return buildScoreViewerHtml(sourceUri, zoomPercent);
   }, [sourceUri, zoomPercent]);
 
   const zoomOut = () => setZoomPercent((prev) => clampScoreZoom(prev - SCORE_ZOOM_STEP));
@@ -119,7 +123,7 @@ export default function ScoreScreen() {
         </Pressable>
       </View>
       {Platform.OS === "web" ? (
-        <ScoreFrameOnWeb uri={zoomedUri} />
+        <ScoreFrameOnWeb html={webViewerHtml ?? ""} />
       ) : (
         <WebView
           source={{ uri: zoomedUri }}

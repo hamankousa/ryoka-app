@@ -1,4 +1,5 @@
 import {
+  buildScoreViewerHtml,
   buildScoreZoomUrl,
   clampScoreZoom,
   SCORE_ZOOM_DEFAULT,
@@ -28,5 +29,10 @@ describe("scoreZoom", () => {
       "https://example.com/score/m45.pdf#zoom=75"
     );
   });
-});
 
+  it("builds viewer html that applies css scale", () => {
+    const html = buildScoreViewerHtml("https://example.com/score/m45.pdf", 200);
+    expect(html).toContain('transform: scale(2)');
+    expect(html).toContain('src="https://example.com/score/m45.pdf"');
+  });
+});
