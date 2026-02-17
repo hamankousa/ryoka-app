@@ -35,6 +35,7 @@
       "expo-router"
     ],
     "extra": {
+      "appUpdatedAt": "2026-02-17T00:00:00+09:00",
       "router": {},
       "eas": {
         "projectId": "489e676d-ad9e-4add-ade9-064e4402436a"

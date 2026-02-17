@@ -1,8 +1,10 @@
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useRef } from "react";
+import Constants from "expo-constants";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { createManifestRepository } from "../../src/infra/manifestRepository";
 
 const QUICK_ACTIONS = [
   { href: "/search", title: "検索", subtitle: "曲名・作歌作曲・年度から探す", accent: "#0284C7" },
@@ -35,11 +37,78 @@ const REPOSITORIES = [
   },
 ] as const;
 
+const manifestRepository = createManifestRepository({});
+
+const appConfig = (Constants.expoConfig?.extra ?? {}) as {
+  appUpdatedAt?: string;
+};
+const APP_UPDATED_AT = appConfig.appUpdatedAt ?? null;
+const APP_VERSION = Constants.expoConfig?.version ?? "-";
+
+type UpdateInfo = {
+  contentVersion: string;
+  contentUpdatedAt: string | null;
+  errorMessage: string | null;
+};
+
+const isTestEnv = (() => {
+  const withProcess = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return withProcess.process?.env?.NODE_ENV === "test";
+})();
+
+function toTime(value: string | null) {
+  if (!value) {
+    return Number.NaN;
+  }
+  return new Date(value).getTime();
+}
+
+function resolveLatestContentUpdatedAt(values: string[]) {
+  let latest: string | null = null;
+  for (const value of values) {
+    if (Number.isNaN(toTime(value))) {
+      continue;
+    }
+    if (!latest || toTime(value) > toTime(latest)) {
+      latest = value;
+    }
+  }
+  return latest;
+}
+
+function formatUpdatedAtLabel(value: string | null) {
+  if (!value) {
+    return "未設定";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default function HomeTabScreen() {
   const router = useRouter();
   const { palette } = useAppSettings();
   const heroAnim = useRef(new Animated.Value(0)).current;
   const actionAnims = useRef(QUICK_ACTIONS.map(() => new Animated.Value(0))).current;
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(
+    isTestEnv
+      ? {
+          contentVersion: "-",
+          contentUpdatedAt: null,
+          errorMessage: null,
+        }
+      : null
+  );
 
   useEffect(() => {
     heroAnim.setValue(0);
@@ -66,6 +135,39 @@ export default function HomeTabScreen() {
       ),
     ]).start();
   }, [actionAnims, heroAnim]);
+
+  useEffect(() => {
+    if (isTestEnv) {
+      return;
+    }
+    let active = true;
+    const load = async () => {
+      try {
+        const manifest = await manifestRepository.getManifest();
+        if (!active) {
+          return;
+        }
+        setUpdateInfo({
+          contentVersion: manifest.version,
+          contentUpdatedAt: resolveLatestContentUpdatedAt(manifest.songs.map((song) => song.updatedAt)),
+          errorMessage: null,
+        });
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setUpdateInfo({
+          contentVersion: "-",
+          contentUpdatedAt: null,
+          errorMessage: error instanceof Error ? error.message : "更新情報の取得に失敗しました。",
+        });
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const heroAnimatedStyle = {
     opacity: heroAnim,
@@ -180,6 +282,31 @@ export default function HomeTabScreen() {
               <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{item.value}</Text>
             </View>
           ))}
+        </View>
+
+        <View style={[styles.infoCard, dynamicStyles.infoCard]}>
+          <Text style={[styles.infoHeading, dynamicStyles.infoHeading]}>更新情報</Text>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>アプリバージョン</Text>
+            <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{APP_VERSION}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>アプリ更新日時</Text>
+            <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{formatUpdatedAtLabel(APP_UPDATED_AT)}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>コンテンツバージョン</Text>
+            <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{updateInfo?.contentVersion ?? "読込中..."}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>コンテンツ更新日時</Text>
+            <Text style={[styles.infoValue, dynamicStyles.infoValue]}>
+              {updateInfo ? formatUpdatedAtLabel(updateInfo.contentUpdatedAt) : "読込中..."}
+            </Text>
+          </View>
+          {updateInfo?.errorMessage ? (
+            <Text style={[styles.infoValue, dynamicStyles.infoLabel]}>{updateInfo.errorMessage}</Text>
+          ) : null}
         </View>
 
         <View style={[styles.infoCard, dynamicStyles.infoCard]}>
