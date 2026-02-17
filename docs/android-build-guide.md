@@ -36,6 +36,9 @@ npm run build:android:preview
 
 ワークフロー: `.github/workflows/build-android-apk.yml`
 
+- `master` への push 時に自動で `ci-apk` プロファイルのビルドが走る
+- 手動実行（`workflow_dispatch`）も引き続き利用可能
+
 実行方法:
 
 1. GitHub の `Settings` > `Secrets and variables` > `Actions` で以下を登録

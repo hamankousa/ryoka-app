@@ -1,6 +1,17 @@
 name: Build Android APK (EAS)
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - app/**
+      - src/**
+      - app.json
+      - eas.json
+      - package.json
+      - package-lock.json
+      - .github/workflows/build-android-apk.yml
   workflow_dispatch:
     inputs:
       profile:
@@ -19,6 +30,9 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'ci-apk' }}
+      EAS_WAIT_FOR_COMPLETION: ${{ github.event_name == 'workflow_dispatch' && inputs.wait_for_completion || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,10 +86,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          if [ "${{ inputs.wait_for_completion }}" = "true" ]; then
-            npx eas-cli build --platform android --profile "${{ inputs.profile }}" --non-interactive
+          if [ "$EAS_WAIT_FOR_COMPLETION" = "true" ]; then
+            npx eas-cli build --platform android --profile "$EAS_PROFILE" --non-interactive
           else
-            npx eas-cli build --platform android --profile "${{ inputs.profile }}" --non-interactive --no-wait
+            npx eas-cli build --platform android --profile "$EAS_PROFILE" --non-interactive --no-wait
           fi
 
       - name: Show latest build
