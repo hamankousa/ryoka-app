@@ -1,8 +1,10 @@
-# ローカル実行マニュアル（あなた用）
+# ローカル実行マニュアル
+
+最終更新: 2026-02-17
 
 前提: `260206寮歌アプリ` 直下に `ryoka-app` と `ryoka-content` がある。
 
-## ターミナル1: コンテンツ配信
+## 1. ターミナル1: コンテンツ配信
 
 場所: `c:\Users\kohtt\OneDrive\ドキュメント\260206寮歌アプリ`
 
@@ -10,14 +12,14 @@
 npx serve . -l 8787 --cors
 ```
 
-確認URL（直接開けること）:
+確認URL:
 
 - `http://localhost:8787/ryoka-content/manifest.json`
 - `http://localhost:8787/ryoka-content/audio/vocal/m45.mp3`
 - `http://localhost:8787/ryoka-content/audio/piano/m45.midi`
 - `http://localhost:8787/ryoka-content/lyrics/m45.html`
 
-## ターミナル2: アプリ起動（Web）
+## 2. ターミナル2: アプリ起動（Web）
 
 場所: `c:\Users\kohtt\OneDrive\ドキュメント\260206寮歌アプリ\ryoka-app`
 
@@ -26,40 +28,37 @@ $env:EXPO_PUBLIC_MANIFEST_BASE_URL="http://localhost:8787/ryoka-content/"
 npm run web
 ```
 
-代替（`web` スクリプトを使わない場合）:
+## 3. iOS Expo Go 起動
 
 ```bash
-$env:EXPO_PUBLIC_MANIFEST_BASE_URL="http://localhost:8787/ryoka-content/"
-npx expo start --web
+# LAN
+npm run start:go
+
+# LANで不安定なら tunnel
+npm run start:go:tunnel
 ```
 
-ブラウザ:
-
-- Expo が表示するURLを開く（通常 `http://localhost:19006`）
-
-## 毎回の開発フロー
+## 4. 毎回の開発フロー
 
 1. ターミナル1を起動（配信）
-2. ターミナル2を起動（web）
+2. ターミナル2を起動（web か go）
 3. コード変更して保存
-4. ブラウザで反映確認
+4. 画面反映とログを確認
 
-## よくある詰まり
+## 5. よくある詰まり
 
 - manifestが読めない:
-  `http://localhost:8787/ryoka-content/manifest.json` を直接開いて確認
-- mp3/html/pdfが読めない:
-  `ryoka-content` 内に `audio/lyrics/score` があるか確認
+  - `manifest.json` のURLを直接開いて確認
 - 曲一覧が空:
-  `EXPO_PUBLIC_MANIFEST_BASE_URL` が正しいか確認
-- `npm run web` が失敗:
-  `ryoka-app/package.json` の `scripts.web` を確認、なければ `npx expo start --web` を使う
+  - `EXPO_PUBLIC_MANIFEST_BASE_URL` を確認
+- iOS tunnel起動でADB 5554エラー:
+  - `npx expo start --go --tunnel` ではなく `npm run start:go:tunnel` を使う
 - ポート競合:
-  `8787` or `19006` を他プロセスが使っていないか確認
+  - `8787` / `8081` / `19006` の占有プロセスを停止
 
-## 起動後の最低確認
+## 6. 最低確認
 
-1. タブが `ホーム / 検索 / 一覧 / ライブラリ` の4つ表示される
+1. タブ `ホーム / 検索 / 一覧 / ライブラリ` が表示される
 2. 下部ミニプレイヤーが表示される
-3. 検索または一覧から `Vocal/Piano` 再生できる
-4. 曲再生中にタブ切替しても再生状態が維持される
+3. 検索か一覧から `Vocal/Piano` 再生できる
+4. タブを切り替えても再生状態が維持される

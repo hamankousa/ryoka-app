@@ -1,8 +1,10 @@
 # Git運用ルール
 
+最終更新: 2026-02-17
+
 ## 1. ブランチ
 
-- `main`: 常にデプロイ可能
+- 既定ブランチ: `master`
 - 作業ブランチ: `feature/<topic>` または `fix/<topic>`
 - 1ブランチ1目的（複数機能を混在させない）
 
@@ -14,20 +16,14 @@
 
 ```txt
 <type>: <summary>
-
-例:
-feat: add manifest cache repository
-test: add download manager retry tests
-fix: prefer local file over remote audio url
-docs: add git workflow rules
 ```
 
-- `type` は `feat|fix|test|refactor|docs|chore`
+`type` は `feat|fix|test|refactor|docs|chore`
 
 ## 3. PR
 
-- PRタイトルはコミットと同じ形式で書く
-- PR本文に以下を必ず書く
+PR本文に以下を記載:
+
 - 目的
 - 変更点
 - テスト結果
@@ -37,21 +33,19 @@ docs: add git workflow rules
 
 - `npm run test` が通る
 - 受け入れ基準に対して説明できる
-- ドキュメント更新が必要なら同PRで更新する
+- 仕様変更時は `docs/` も同PRで更新する
 
 ## 5. CodexのGit操作
 
-- Codex は必要に応じて `git` コマンドを実行してよい
-- 目的は状況確認・差分確認・履歴確認・通常コミット作業
+- 状況確認・差分確認・履歴確認・通常コミットは実行可
 - 破壊的操作（履歴破壊、強制上書き）は明示指示がある場合のみ
+
 ## 6. 禁止事項
 
-- `main` への直接コミット
 - テスト失敗のままマージ
-- 関係ないファイルの変更を混ぜる
+- 関係ない変更を同じコミットに混ぜる
 
-## 7. ドキュメント同期ルール
+## 7. ドキュメント同期
 
-- 仕様変更（UI/挙動/運用）を入れたコミットでは `docs/` も同じ単位で更新する
-- セッション区切りコミット前に `README.md` と `docs/decision-log.md` の整合を確認する
-- レイアウト仕様を変更した場合は、可能な限り対応テスト（例: `miniPlayer.test.tsx`）も同時更新する
+- UI/仕様/運用を変更したコミットでは `README.md` と `docs/` を同時更新する
+- レイアウト仕様を変更した場合は、対応テストも同時更新する
