@@ -15,7 +15,7 @@ export type AppSettings = {
 export const defaultAppSettings: AppSettings = {
   themeMode: "system",
   liquidGlassEnabled: false,
-  filterAutoCollapseEnabled: true,
+  filterAutoCollapseEnabled: false,
   midiGuideLookAheadSec: 5,
 };
 

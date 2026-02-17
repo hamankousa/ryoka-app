@@ -17,7 +17,7 @@ function baseContext(loaded = true) {
     settings: {
       themeMode: "system" as const,
       liquidGlassEnabled: false,
-      filterAutoCollapseEnabled: true,
+      filterAutoCollapseEnabled: false,
       midiGuideLookAheadSec: 5 as const,
     },
     resolvedTheme: "light" as const,
@@ -67,8 +67,8 @@ describe("SettingsScreen", () => {
     fireEvent(screen.getByTestId("settings-liquid-glass-switch"), "valueChange", true);
     expect(setLiquidGlassEnabled).toHaveBeenCalledWith(true);
 
-    fireEvent(screen.getByTestId("settings-filter-auto-collapse-switch"), "valueChange", false);
-    expect(setFilterAutoCollapseEnabled).toHaveBeenCalledWith(false);
+    fireEvent(screen.getByTestId("settings-filter-auto-collapse-switch"), "valueChange", true);
+    expect(setFilterAutoCollapseEnabled).toHaveBeenCalledWith(true);
 
     fireEvent.press(screen.getByTestId("settings-lookahead-8"));
     expect(setMidiGuideLookAheadSec).toHaveBeenCalledWith(8);

@@ -10,7 +10,7 @@ describe("appSettings", () => {
   it("provides expected defaults", () => {
     expect(defaultAppSettings.themeMode).toBe("system");
     expect(defaultAppSettings.liquidGlassEnabled).toBe(false);
-    expect(defaultAppSettings.filterAutoCollapseEnabled).toBe(true);
+    expect(defaultAppSettings.filterAutoCollapseEnabled).toBe(false);
     expect(defaultAppSettings.midiGuideLookAheadSec).toBe(5);
   });
 
