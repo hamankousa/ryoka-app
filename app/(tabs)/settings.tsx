@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Switch, Text, View
 
 import { APP_THEME_MODES, MIDI_GUIDE_LOOKAHEAD_OPTIONS } from "../../src/domain/appSettings";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { SwipeBackContainer } from "../../src/ui/navigation/SwipeBackContainer";
 
 const THEME_MODE_LABEL: Record<(typeof APP_THEME_MODES)[number], string> = {
   system: "端末依存",
@@ -90,20 +91,23 @@ export default function SettingsScreen() {
 
   if (!loaded) {
     return (
-      <View style={[styles.container, dynamicStyles.container, styles.centered]}>
-        <Text style={[styles.loading, dynamicStyles.hint]}>設定を読み込み中...</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.container, dynamicStyles.container, styles.centered]}>
+          <Text style={[styles.loading, dynamicStyles.hint]}>設定を読み込み中...</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, dynamicStyles.container]}>
-      <Animated.View style={animatedSectionStyle(0)}>
-        <Text style={[styles.pageTitle, dynamicStyles.title]}>表示と再生の設定</Text>
-        <Text style={[styles.pageDescription, dynamicStyles.hint]}>
-          見た目と検索挙動、MIDIガイドの表示レンジを変更できます。
-        </Text>
-      </Animated.View>
+    <SwipeBackContainer backgroundColor={palette.screenBackground}>
+      <ScrollView contentContainerStyle={[styles.container, dynamicStyles.container]}>
+        <Animated.View style={animatedSectionStyle(0)}>
+          <Text style={[styles.pageTitle, dynamicStyles.title]}>表示と再生の設定</Text>
+          <Text style={[styles.pageDescription, dynamicStyles.hint]}>
+            見た目と検索挙動、MIDIガイドの表示レンジを変更できます。
+          </Text>
+        </Animated.View>
 
       <Animated.View style={animatedSectionStyle(1)}>
         <View style={[styles.card, dynamicStyles.card]}>
@@ -203,12 +207,13 @@ export default function SettingsScreen() {
         </View>
       </Animated.View>
 
-      <Animated.View style={animatedSectionStyle(4)}>
-        <Text style={[styles.footerHint, { color: hintColor }]}>
-          変更内容は端末内に保存され、次回起動時も維持されます。
-        </Text>
-      </Animated.View>
-    </ScrollView>
+        <Animated.View style={animatedSectionStyle(4)}>
+          <Text style={[styles.footerHint, { color: hintColor }]}>
+            変更内容は端末内に保存され、次回起動時も維持されます。
+          </Text>
+        </Animated.View>
+      </ScrollView>
+    </SwipeBackContainer>
   );
 }
 

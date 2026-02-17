@@ -47,6 +47,18 @@ npm run web
 npm run test
 ```
 
+4. iOS実機（Expo Go）で確認
+
+```bash
+npm run start:go
+```
+
+- QR を Expo Go で読み取り
+- 既定は LAN モード
+- LAN で失敗する場合は `npm run start:go:tunnel`
+- 既定の `manifest` 参照先は `https://ryoka-content.pages.dev/`
+- ローカルコンテンツを使う場合は `EXPO_PUBLIC_MANIFEST_BASE_URL` に `http://<PCのIP>:8787/ryoka-content/` を指定
+
 ## 5. TDDルール
 
 1. 仕様を1つに絞る

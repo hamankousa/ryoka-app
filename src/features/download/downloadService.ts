@@ -31,6 +31,16 @@ export type SongDownloadMeta = {
   interrupted?: boolean;
 };
 
+export type BulkDownloadProgress = {
+  total: number;
+  queued: number;
+  downloading: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  progress: number;
+};
+
 type DownloadHistoryData = {
   songs: Record<string, SongDownloadMeta>;
 };
@@ -209,6 +219,10 @@ function isDownloadJobStatus(value: unknown): value is DownloadJobStatus {
 }
 
 function isTransientStatus(status: DownloadJobStatus) {
+  return status === "queued" || status === "downloading" || status === "retrying";
+}
+
+function isActiveStatus(status: DownloadJobStatus) {
   return status === "queued" || status === "downloading" || status === "retrying";
 }
 
@@ -465,6 +479,128 @@ export function createDownloadService({
     return jobId;
   };
 
+  async function downloadSongsBulk(
+    songs: SongManifestItem[],
+    options?: { includeAlreadyDownloaded?: boolean }
+  ) {
+    await historyReady;
+    const includeAlreadyDownloaded = Boolean(options?.includeAlreadyDownloaded);
+    const existingEntries = new Map(
+      (await offlineRepo.listEntries()).map((entry) => [entry.songId, entry] as const)
+    );
+    const latestJobs = new Map<string, DownloadSnapshot["jobs"][number]>();
+    for (const job of manager.getSnapshot().jobs) {
+      latestJobs.set(job.songId, job);
+    }
+
+    const jobIds: string[] = [];
+    const songIds = new Set<string>();
+    for (const song of songs) {
+      if (songIds.has(song.id)) {
+        continue;
+      }
+      songIds.add(song.id);
+      const latestJob = latestJobs.get(song.id);
+      if (latestJob && isActiveStatus(latestJob.status)) {
+        continue;
+      }
+      const entry = existingEntries.get(song.id);
+      const alreadyDownloaded = Boolean(
+        entry && new Date(entry.updatedAt).getTime() >= new Date(song.updatedAt).getTime()
+      );
+      if (!includeAlreadyDownloaded && alreadyDownloaded) {
+        continue;
+      }
+      const jobId = await downloadSong(song);
+      jobIds.push(jobId);
+    }
+    return jobIds;
+  }
+
+  function cancelBulkDownloads(songIds?: string[]) {
+    const filter = songIds ? new Set(songIds) : null;
+    let cancelled = 0;
+    for (const job of manager.getSnapshot().jobs) {
+      if (!isActiveStatus(job.status)) {
+        continue;
+      }
+      if (filter && !filter.has(job.songId)) {
+        continue;
+      }
+      manager.cancel(job.jobId);
+      cancelled += 1;
+    }
+    return cancelled;
+  }
+
+  async function retryFailedBulkDownloads(songs: SongManifestItem[]) {
+    await historyReady;
+    const metaBySongId = new Map(Object.entries(historyData.songs));
+    const retriedJobIds: string[] = [];
+    const seen = new Set<string>();
+
+    for (const song of songs) {
+      if (seen.has(song.id)) {
+        continue;
+      }
+      seen.add(song.id);
+      const meta = metaBySongId.get(song.id);
+      if (!meta) {
+        continue;
+      }
+      if (meta.status !== "failed" && meta.status !== "cancelled") {
+        continue;
+      }
+      retriedJobIds.push(await downloadSong(song));
+    }
+
+    return retriedJobIds;
+  }
+
+  function getBulkDownloadProgress(songIds?: string[]): BulkDownloadProgress {
+    const filter = songIds ? new Set(songIds) : null;
+    const latestBySongId = new Map<string, DownloadSnapshot["jobs"][number]>();
+    for (const job of manager.getSnapshot().jobs) {
+      if (filter && !filter.has(job.songId)) {
+        continue;
+      }
+      latestBySongId.set(job.songId, job);
+    }
+
+    let queued = 0;
+    let downloading = 0;
+    let completed = 0;
+    let failed = 0;
+    let cancelled = 0;
+    let progressTotal = 0;
+
+    for (const job of latestBySongId.values()) {
+      progressTotal += normalizeProgress(job.progress);
+      if (job.status === "queued") {
+        queued += 1;
+      } else if (job.status === "downloading" || job.status === "retrying") {
+        downloading += 1;
+      } else if (job.status === "completed") {
+        completed += 1;
+      } else if (job.status === "failed") {
+        failed += 1;
+      } else if (job.status === "cancelled") {
+        cancelled += 1;
+      }
+    }
+
+    const total = latestBySongId.size;
+    return {
+      total,
+      queued,
+      downloading,
+      completed,
+      failed,
+      cancelled,
+      progress: total > 0 ? Math.round(progressTotal / total) : 0,
+    };
+  }
+
   return {
     subscribe: manager.subscribe,
     getSnapshot: manager.getSnapshot,
@@ -507,6 +643,10 @@ export function createDownloadService({
     retrySongDownload: async (song: SongManifestItem) => {
       return downloadSong(song);
     },
+    downloadSongsBulk,
+    cancelBulkDownloads,
+    retryFailedBulkDownloads,
+    getBulkDownloadProgress,
     downloadSong,
   };
 }

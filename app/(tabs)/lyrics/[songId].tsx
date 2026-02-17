@@ -10,6 +10,7 @@ import { buildStyledLyricsHtml } from "../../../src/features/lyrics/sanitizeLyri
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
 
@@ -96,31 +97,41 @@ export default function LyricsScreen() {
 
   if (errorMessage) {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
-        <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+          <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   if (!song || !source) {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
-        <Text style={[styles.loading, { color: palette.textSecondary }]}>歌詞を読み込み中...</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+          <Text style={[styles.loading, { color: palette.textSecondary }]}>歌詞を読み込み中...</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   if (source.type === "html") {
     return (
-      <ScrollView
-        contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
-      >
-        <LyricsHtmlOnWeb html={styledInlineHtml} />
-      </ScrollView>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <ScrollView
+          contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
+        >
+          <LyricsHtmlOnWeb html={styledInlineHtml} />
+        </ScrollView>
+      </SwipeBackContainer>
     );
   }
 
-  return <WebView source={{ uri: source.uri }} style={styles.webview} />;
+  return (
+    <SwipeBackContainer backgroundColor={palette.screenBackground}>
+      <WebView source={{ uri: source.uri }} style={styles.webview} />
+    </SwipeBackContainer>
+  );
 }
 
 const styles = StyleSheet.create({

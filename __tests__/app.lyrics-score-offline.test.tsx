@@ -4,6 +4,10 @@ import { ReactNode } from "react";
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   useLocalSearchParams: () => ({ songId: "m45" }),
+  useRouter: () => ({
+    back: jest.fn(),
+    canGoBack: () => true,
+  }),
 }));
 
 jest.mock("react-native-webview", () => ({

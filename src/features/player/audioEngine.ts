@@ -3,11 +3,16 @@ import { Platform } from "react-native";
 
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { isMidiUrl } from "./audioSource";
+import {
+  createNativeMidiEngine,
+  NativeMidiEngine,
+  NATIVE_MIDI_UNSUPPORTED_MESSAGE,
+} from "./nativeMidiEngine";
 import { buildMidiSchedule } from "./midiParser";
 import { MidiTimbre, WebMidiEngine } from "./webMidiEngine";
 import { prepareWebPlaybackSession } from "./webPlaybackSession";
 
-type BackendType = "expo" | "web-midi";
+type BackendType = "expo" | "web-midi" | "native-midi";
 
 export type PlaybackSnapshot = {
   backend: BackendType;
@@ -28,7 +33,7 @@ export type PlaybackSnapshot = {
   canControlOctave: boolean;
 };
 
-class AudioEngine {
+export class AudioEngine {
   private sound: Audio.Sound | null = null;
   private snapshot: PlaybackSnapshot = {
     backend: "expo",
@@ -47,10 +52,74 @@ class AudioEngine {
     canControlOctave: false,
   };
   private listeners = new Set<(snapshot: PlaybackSnapshot) => void>();
-  private webMidi = new WebMidiEngine();
+  private webMidi: WebMidiEngine;
+  private nativeMidi: NativeMidiEngine;
   private activeBackend: BackendType = "expo";
   private midiNotesCache = new Map<string, MidiPitchGuideNote[]>();
   private playRequestId = 0;
+
+  constructor({
+    webMidi = new WebMidiEngine(),
+    nativeMidi = createNativeMidiEngine(),
+  }: {
+    webMidi?: WebMidiEngine;
+    nativeMidi?: NativeMidiEngine;
+  } = {}) {
+    this.webMidi = webMidi;
+    this.nativeMidi = nativeMidi;
+
+    this.webMidi.subscribe((snapshot) => {
+      if (this.activeBackend !== "web-midi") {
+        return;
+      }
+      this.snapshot = {
+        ...this.snapshot,
+        backend: "web-midi",
+        isPlaying: snapshot.isPlaying,
+        uri: snapshot.uri,
+        error: snapshot.error,
+        positionSec: snapshot.positionSec,
+        durationSec: snapshot.durationSec,
+        midiNotes: snapshot.midiNotes,
+        tempoRate: snapshot.tempoRate,
+        timbre: snapshot.timbre,
+        octaveShift: snapshot.octaveShift,
+        loopEnabled: snapshot.loopEnabled,
+        canSeek: true,
+        canLoop: true,
+        canControlTempo: true,
+        canControlTimbre: true,
+        canControlOctave: true,
+      };
+      this.emit();
+    });
+
+    this.nativeMidi.subscribe((snapshot) => {
+      if (this.activeBackend !== "native-midi") {
+        return;
+      }
+      this.snapshot = {
+        ...this.snapshot,
+        backend: "native-midi",
+        isPlaying: snapshot.isPlaying,
+        uri: snapshot.uri,
+        error: snapshot.error,
+        positionSec: snapshot.positionSec,
+        durationSec: snapshot.durationSec,
+        midiNotes: snapshot.midiNotes,
+        tempoRate: snapshot.tempoRate,
+        timbre: snapshot.timbre,
+        octaveShift: snapshot.octaveShift,
+        loopEnabled: snapshot.loopEnabled,
+        canSeek: true,
+        canLoop: true,
+        canControlTempo: true,
+        canControlTimbre: true,
+        canControlOctave: true,
+      };
+      this.emit();
+    });
+  }
 
   private emit() {
     for (const listener of this.listeners) {
@@ -122,7 +191,7 @@ class AudioEngine {
     }));
   }
 
-  private async loadMidiNotesForExpoPlayback(uri: string, requestId: number) {
+  private async loadMidiNotesForPlayback(uri: string, requestId: number, backend: BackendType) {
     if (!isMidiUrl(uri)) {
       return;
     }
@@ -130,7 +199,7 @@ class AudioEngine {
     const cached = this.midiNotesCache.get(uri);
     if (cached) {
       if (
-        this.activeBackend === "expo" &&
+        this.activeBackend === backend &&
         this.playRequestId === requestId &&
         this.snapshot.uri === uri &&
         !this.snapshot.midiNotes
@@ -145,7 +214,7 @@ class AudioEngine {
       const midiNotes = await this.readMidiNotes(uri);
       this.midiNotesCache.set(uri, midiNotes);
       if (
-        this.activeBackend === "expo" &&
+        this.activeBackend === backend &&
         this.playRequestId === requestId &&
         this.snapshot.uri === uri
       ) {
@@ -153,11 +222,11 @@ class AudioEngine {
         this.emit();
       }
     } catch {
-      // ignore note parsing errors: playback itself can still continue.
+      // note parsing errors should not break playback.
     }
   }
 
-  private async useWebMidiIfNeeded(uri: string) {
+  private async useWebMidiIfNeeded(uri: string, requestId: number) {
     const shouldUseWebMidi = Platform.OS === "web" && isMidiUrl(uri);
     if (!shouldUseWebMidi) {
       return false;
@@ -165,11 +234,35 @@ class AudioEngine {
 
     this.activeBackend = "web-midi";
     await this.stopExpoSound();
+    await this.nativeMidi.stop();
     await this.webMidi.setLoopEnabled(this.snapshot.loopEnabled);
     await this.webMidi.setTempo(this.snapshot.tempoRate);
     await this.webMidi.setTimbre(this.snapshot.timbre);
     await this.webMidi.setOctaveShift(this.snapshot.octaveShift);
     await this.webMidi.play(uri);
+    void this.loadMidiNotesForPlayback(uri, requestId, "web-midi");
+    return true;
+  }
+
+  private async useNativeMidiIfNeeded(uri: string, requestId: number) {
+    const shouldUseNativeMidi = Platform.OS !== "web" && isMidiUrl(uri);
+    if (!shouldUseNativeMidi) {
+      return false;
+    }
+
+    if (!this.nativeMidi.isSupported()) {
+      throw new Error(NATIVE_MIDI_UNSUPPORTED_MESSAGE);
+    }
+
+    this.activeBackend = "native-midi";
+    await this.stopExpoSound();
+    await this.webMidi.stop();
+    await this.nativeMidi.setLoopEnabled(this.snapshot.loopEnabled);
+    await this.nativeMidi.setTempo(this.snapshot.tempoRate);
+    await this.nativeMidi.setTimbre(this.snapshot.timbre);
+    await this.nativeMidi.setOctaveShift(this.snapshot.octaveShift);
+    await this.nativeMidi.play(uri);
+    void this.loadMidiNotesForPlayback(uri, requestId, "native-midi");
     return true;
   }
 
@@ -194,7 +287,11 @@ class AudioEngine {
     const requestId = ++this.playRequestId;
     await prepareWebPlaybackSession();
 
-    if (await this.useWebMidiIfNeeded(uri)) {
+    if (await this.useWebMidiIfNeeded(uri, requestId)) {
+      return;
+    }
+
+    if (await this.useNativeMidiIfNeeded(uri, requestId)) {
       return;
     }
 
@@ -203,6 +300,7 @@ class AudioEngine {
     try {
       this.activeBackend = "expo";
       await this.webMidi.stop();
+      await this.nativeMidi.stop();
       await this.stopExpoSound();
 
       const created = await Audio.Sound.createAsync(
@@ -227,7 +325,7 @@ class AudioEngine {
         canControlOctave: false,
       };
       this.emit();
-      void this.loadMidiNotesForExpoPlayback(uri, requestId);
+      void this.loadMidiNotesForPlayback(uri, requestId, "expo");
     } catch (error) {
       this.snapshot = {
         ...this.snapshot,
@@ -247,6 +345,11 @@ class AudioEngine {
       return;
     }
 
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.pause();
+      return;
+    }
+
     if (!this.sound) {
       return;
     }
@@ -262,6 +365,11 @@ class AudioEngine {
       return;
     }
 
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.resume();
+      return;
+    }
+
     if (!this.sound) {
       return;
     }
@@ -272,6 +380,11 @@ class AudioEngine {
   async stop() {
     if (this.activeBackend === "web-midi") {
       await this.webMidi.stop();
+      return;
+    }
+
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.stop();
       return;
     }
 
@@ -290,6 +403,10 @@ class AudioEngine {
       await this.webMidi.seek(positionSec);
       return;
     }
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.seek(positionSec);
+      return;
+    }
     if (!this.sound) {
       return;
     }
@@ -297,30 +414,43 @@ class AudioEngine {
   }
 
   async setTempo(rate: number) {
-    if (this.activeBackend !== "web-midi") {
+    if (this.activeBackend === "web-midi") {
+      await this.webMidi.setTempo(rate);
       return;
     }
-    await this.webMidi.setTempo(rate);
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.setTempo(rate);
+    }
   }
 
   async setTimbre(timbre: MidiTimbre) {
-    if (this.activeBackend !== "web-midi") {
+    if (this.activeBackend === "web-midi") {
+      await this.webMidi.setTimbre(timbre);
       return;
     }
-    await this.webMidi.setTimbre(timbre);
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.setTimbre(timbre);
+    }
   }
 
   async setOctaveShift(shift: number) {
-    if (this.activeBackend !== "web-midi") {
+    if (this.activeBackend === "web-midi") {
+      await this.webMidi.setOctaveShift(shift);
       return;
     }
-    await this.webMidi.setOctaveShift(shift);
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.setOctaveShift(shift);
+    }
   }
 
   async setLoopEnabled(enabled: boolean) {
     this.snapshot = { ...this.snapshot, loopEnabled: enabled };
     if (this.activeBackend === "web-midi") {
       await this.webMidi.setLoopEnabled(enabled);
+      return;
+    }
+    if (this.activeBackend === "native-midi") {
+      await this.nativeMidi.setLoopEnabled(enabled);
       return;
     }
     if (this.sound) {
@@ -330,36 +460,9 @@ class AudioEngine {
   }
 
   subscribe(listener: (snapshot: PlaybackSnapshot) => void) {
-    const stopWebMidi = this.webMidi.subscribe((snapshot) => {
-      if (this.activeBackend !== "web-midi") {
-        return;
-      }
-      this.snapshot = {
-        ...this.snapshot,
-        backend: "web-midi",
-        isPlaying: snapshot.isPlaying,
-        uri: snapshot.uri,
-        error: snapshot.error,
-        positionSec: snapshot.positionSec,
-        durationSec: snapshot.durationSec,
-        midiNotes: snapshot.midiNotes,
-        tempoRate: snapshot.tempoRate,
-        timbre: snapshot.timbre,
-        octaveShift: snapshot.octaveShift,
-        loopEnabled: snapshot.loopEnabled,
-        canSeek: true,
-        canLoop: true,
-        canControlTempo: true,
-        canControlTimbre: true,
-        canControlOctave: true,
-      };
-      this.emit();
-    });
-
     this.listeners.add(listener);
     listener(this.snapshot);
     return () => {
-      stopWebMidi();
       this.listeners.delete(listener);
     };
   }

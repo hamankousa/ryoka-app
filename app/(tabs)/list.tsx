@@ -109,11 +109,53 @@ export default function ListTabScreen() {
       songs: groups.get(key) ?? [],
     })).filter((section) => section.songs.length > 0);
   }, [songs]);
+  const listSongIds = useMemo(() => songs.map((song) => song.id), [songs]);
+  const bulkProgress = useMemo(
+    () => downloadService.getBulkDownloadProgress(listSongIds),
+    [downloadSnapshot, listSongIds]
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
       <Text style={[styles.heading, { color: palette.textPrimary }]}>全曲一覧</Text>
       <Text style={[styles.meta, { color: palette.textSecondary }]}>{songs.length}曲</Text>
+      {Platform.OS !== "web" && songs.length > 0 && (
+        <View style={styles.bulkArea}>
+          <View style={styles.bulkButtons}>
+            <Pressable
+              testID="list-bulk-download"
+              style={styles.bulkPrimaryButton}
+              onPress={() => {
+                void downloadService.downloadSongsBulk(songs);
+              }}
+            >
+              <Text style={styles.bulkPrimaryButtonText}>表示中を一括DL</Text>
+            </Pressable>
+            <Pressable
+              testID="list-bulk-cancel"
+              style={styles.bulkSecondaryButton}
+              onPress={() => {
+                downloadService.cancelBulkDownloads(listSongIds);
+              }}
+            >
+              <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+            </Pressable>
+            <Pressable
+              testID="list-bulk-retry"
+              style={styles.bulkSecondaryButton}
+              onPress={() => {
+                void downloadService.retryFailedBulkDownloads(songs);
+              }}
+            >
+              <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.bulkMeta, { color: palette.textSecondary }]}>
+            進行: {bulkProgress.downloading + bulkProgress.queued}/{bulkProgress.total}件, 完了:{" "}
+            {bulkProgress.completed}, 失敗: {bulkProgress.failed}, {bulkProgress.progress}%
+          </Text>
+        </View>
+      )}
 
       {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
       {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
@@ -266,6 +308,40 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     paddingHorizontal: 2,
+  },
+  bulkArea: {
+    gap: 4,
+  },
+  bulkButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  bulkPrimaryButton: {
+    backgroundColor: "#0F766E",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  bulkPrimaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  bulkSecondaryButton: {
+    backgroundColor: "#E2E8F0",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  bulkSecondaryButtonText: {
+    color: "#1E293B",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  bulkMeta: {
+    color: "#64748B",
+    fontSize: 11,
   },
   linkLyrics: {
     color: "#0F766E",

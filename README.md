@@ -40,6 +40,7 @@ npm run test
 - 開発手順: `docs/development-guide.md`
 - Web公開手順（Cloudflare Pages）: `docs/deploy-cloudflare-pages.md`
 - Androidビルド手順（EAS）: `docs/android-build-guide.md`
+- iOS（Expo Go）起動手順: `docs/ios-expo-go-guide.md`
 - プライバシーポリシー（ドラフト）: `docs/privacy-policy.md`
 - 著作権・利用上の注意（ドラフト）: `docs/copyright-notice.md`
 - セットアップ/変更ログ: `docs/setup-log.md`

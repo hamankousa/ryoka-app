@@ -140,6 +140,11 @@ export default function LibraryTabScreen() {
         meta: metaBySongId.get(songId) ?? null,
       }));
   }, [downloadMetas, offlineEntries, songs]);
+  const allSongIds = useMemo(() => songs.map((song) => song.id), [songs]);
+  const bulkProgress = useMemo(
+    () => downloadService.getBulkDownloadProgress(allSongIds),
+    [allSongIds, downloadSnapshot]
+  );
 
   const deleteOfflineSong = async (songId: string) => {
     await downloadService.deleteSong(songId);
@@ -168,6 +173,43 @@ export default function LibraryTabScreen() {
         <Text style={[styles.meta, { color: palette.textSecondary }]}>
           保存曲: {offlineSongs.length}曲 / 管理対象: {libraryItems.length}件
         </Text>
+      )}
+      {!isLoading && !errorMessage && Platform.OS !== "web" && songs.length > 0 && (
+        <View style={styles.bulkArea}>
+          <View style={styles.bulkButtons}>
+            <Pressable
+              testID="library-bulk-download-all"
+              style={styles.bulkPrimaryButton}
+              onPress={() => {
+                void downloadService.downloadSongsBulk(songs);
+              }}
+            >
+              <Text style={styles.bulkPrimaryButtonText}>全曲一括DL</Text>
+            </Pressable>
+            <Pressable
+              testID="library-bulk-cancel-all"
+              style={styles.bulkSecondaryButton}
+              onPress={() => {
+                downloadService.cancelBulkDownloads();
+              }}
+            >
+              <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+            </Pressable>
+            <Pressable
+              testID="library-bulk-retry-failed"
+              style={styles.bulkSecondaryButton}
+              onPress={() => {
+                void downloadService.retryFailedBulkDownloads(songs);
+              }}
+            >
+              <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.bulkMeta, { color: palette.textSecondary }]}>
+            進行: {bulkProgress.downloading + bulkProgress.queued}/{bulkProgress.total}件, 完了:{" "}
+            {bulkProgress.completed}, 失敗: {bulkProgress.failed}, {bulkProgress.progress}%
+          </Text>
+        </View>
       )}
 
       {!isLoading && !errorMessage && libraryItems.length === 0 && (
@@ -400,6 +442,40 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#475569",
     fontSize: 13,
+  },
+  bulkArea: {
+    gap: 4,
+  },
+  bulkButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  bulkPrimaryButton: {
+    backgroundColor: "#0F766E",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  bulkPrimaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  bulkSecondaryButton: {
+    backgroundColor: "#E2E8F0",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  bulkSecondaryButtonText: {
+    color: "#1E293B",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  bulkMeta: {
+    color: "#64748B",
+    fontSize: 11,
   },
   title: {
     color: "#0F172A",

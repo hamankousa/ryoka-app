@@ -9,6 +9,7 @@ import { OfflineEntry } from "../../../src/features/offline/offlineRepo";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
 
@@ -107,30 +108,35 @@ export default function SongDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
-        <ActivityIndicator size="large" color={palette.accent} />
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
+          <ActivityIndicator size="large" color={palette.accent} />
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   if (errorMessage || !song || !downloadState) {
     return (
-      <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
-        <Text style={[styles.error, { color: palette.danger }]}>{errorMessage ?? "曲が見つかりません。"}</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
+          <Text style={[styles.error, { color: palette.danger }]}>{errorMessage ?? "曲が見つかりません。"}</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   return (
-    <ScrollView style={{ backgroundColor: palette.screenBackground }} contentContainerStyle={styles.container}>
-      <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
-        <Text style={[styles.title, { color: palette.textPrimary }]}>{song.title}</Text>
-        <Text style={[styles.meta, { color: palette.textSecondary }]}>ID: {song.id}</Text>
-        <Text style={[styles.meta, { color: palette.textSecondary }]}>年度: {song.yearLabel ?? "-"}</Text>
-        <Text style={[styles.meta, { color: palette.textSecondary }]}>
-          作歌・作曲: {song.credits && song.credits.length > 0 ? song.credits.join(" / ") : "-"}
-        </Text>
-      </View>
+    <SwipeBackContainer backgroundColor={palette.screenBackground}>
+      <ScrollView style={{ backgroundColor: palette.screenBackground }} contentContainerStyle={styles.container}>
+        <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
+          <Text style={[styles.title, { color: palette.textPrimary }]}>{song.title}</Text>
+          <Text style={[styles.meta, { color: palette.textSecondary }]}>ID: {song.id}</Text>
+          <Text style={[styles.meta, { color: palette.textSecondary }]}>年度: {song.yearLabel ?? "-"}</Text>
+          <Text style={[styles.meta, { color: palette.textSecondary }]}>
+            作歌・作曲: {song.credits && song.credits.length > 0 ? song.credits.join(" / ") : "-"}
+          </Text>
+        </View>
 
       <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
         <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>ダウンロード状態</Text>
@@ -186,18 +192,19 @@ export default function SongDetailScreen() {
         )}
       </View>
 
-      <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
-        <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>閲覧</Text>
-        <View style={styles.links}>
-          <Link href={`/lyrics/${song.id}`} style={styles.linkLyrics}>
-            歌詞を開く
-          </Link>
-          <Link href={`/score/${song.id}`} style={styles.linkScore}>
-            楽譜を開く
-          </Link>
+        <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
+          <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>閲覧</Text>
+          <View style={styles.links}>
+            <Link href={`/lyrics/${song.id}`} style={styles.linkLyrics}>
+              歌詞を開く
+            </Link>
+            <Link href={`/score/${song.id}`} style={styles.linkScore}>
+              楽譜を開く
+            </Link>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SwipeBackContainer>
   );
 }
 

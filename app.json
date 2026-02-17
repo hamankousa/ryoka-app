@@ -2,6 +2,7 @@
   "expo": {
     "name": "ryoka-app",
     "slug": "ryoka-app",
+    "scheme": "ryokaapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +14,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
     },
     "android": {
       "package": "com.hamankousa.ryokaapp",

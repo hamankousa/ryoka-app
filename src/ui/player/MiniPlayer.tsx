@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { ResolvedThemeMode } from "../../domain/appSettings";
@@ -80,6 +81,8 @@ const ICON_LOOP = "↻↺";
 const ICON_SHUFFLE = "⇄";
 const DRAG_CLOSE_DISTANCE = 140;
 const DRAG_CLOSE_VELOCITY = 1.1;
+const SWIPE_CLOSE_DISTANCE = 92;
+const SWIPE_CLOSE_VELOCITY = 0.45;
 const DRAG_OPEN_OFFSET = 24;
 const DRAG_CLOSE_ANIMATION_TO = 420;
 const LYRICS_PANEL_MIN_HEIGHT = 220;
@@ -97,6 +100,7 @@ const CONTROL_WIDTH = {
   primary: 72,
   loop: 52,
 } as const;
+const HORIZONTAL_DRAG_WEIGHT = 0.34;
 
 function formatTime(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
@@ -127,6 +131,30 @@ function clampLyricsPanelHeight(height: number, sheetHeight: number) {
       ? Math.max(LYRICS_PANEL_MIN_HEIGHT + 40, sheetHeight - 280)
       : LYRICS_PANEL_MAX_HEIGHT_FALLBACK;
   return Math.min(dynamicMax, Math.max(LYRICS_PANEL_MIN_HEIGHT, Math.round(height)));
+}
+
+export function resolveSheetDragOffset(translationY: number, translationX: number) {
+  const verticalOffset = translationY > 0 ? translationY : 0;
+  const horizontalOffset = translationX > 0 ? translationX * HORIZONTAL_DRAG_WEIGHT : 0;
+  return Math.max(0, verticalOffset, horizontalOffset);
+}
+
+export function shouldDismissSheetGesture({
+  translationY,
+  velocityY,
+  translationX,
+  velocityX,
+}: {
+  translationY: number;
+  velocityY: number;
+  translationX: number;
+  velocityX: number;
+}) {
+  const shouldCloseByVertical =
+    translationY >= DRAG_CLOSE_DISTANCE || velocityY > DRAG_CLOSE_VELOCITY;
+  const shouldCloseByHorizontal =
+    translationX >= SWIPE_CLOSE_DISTANCE || velocityX >= SWIPE_CLOSE_VELOCITY;
+  return shouldCloseByVertical || shouldCloseByHorizontal;
 }
 
 export function MiniPlayer({
@@ -169,6 +197,7 @@ export function MiniPlayer({
   onCycleLoopMode,
   onToggleShuffle,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const [seekWidth, setSeekWidth] = useState(0);
   const [collapsedSeekWidth, setCollapsedSeekWidth] = useState(0);
   const [tempoWidth, setTempoWidth] = useState(0);
@@ -207,13 +236,12 @@ export function MiniPlayer({
     });
   }, [isDark, lyricsHtml]);
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
-  const dragStartOffsetRef = useRef(0);
-  const isDragClosingRef = useRef(false);
   const backdropOpacity = sheetTranslateY.interpolate({
     inputRange: [0, DRAG_CLOSE_ANIMATION_TO],
     outputRange: [1, 0.35],
     extrapolate: "clamp",
   });
+  const isDragClosingRef = useRef(false);
 
   const handleSeekPress = (event: GestureResponderEvent) => {
     if (!canSeek || seekWidth <= 0 || durationSec <= 0) {
@@ -259,14 +287,20 @@ export function MiniPlayer({
   );
 
   const restoreSheetPosition = useCallback(() => {
-    Animated.spring(sheetTranslateY, {
+    isDragClosingRef.current = false;
+    Animated.timing(sheetTranslateY, {
       toValue: 0,
-      damping: 18,
-      stiffness: 180,
-      mass: 0.4,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
   }, [sheetTranslateY]);
+
+  const finishClose = useCallback(() => {
+    isDragClosingRef.current = false;
+    sheetTranslateY.setValue(0);
+    onCollapse();
+  }, [onCollapse, sheetTranslateY]);
 
   const closeByDrag = useCallback(() => {
     if (isDragClosingRef.current) {
@@ -275,47 +309,49 @@ export function MiniPlayer({
     isDragClosingRef.current = true;
     Animated.timing(sheetTranslateY, {
       toValue: DRAG_CLOSE_ANIMATION_TO,
-      duration: 180,
-      easing: Easing.in(Easing.cubic),
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start(() => {
-      isDragClosingRef.current = false;
-      sheetTranslateY.setValue(0);
-      onCollapse();
+    }).start(({ finished }) => {
+      if (finished) {
+        finishClose();
+      }
     });
-  }, [onCollapse, sheetTranslateY]);
+  }, [finishClose, sheetTranslateY]);
 
-  const dragHandleResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_event, gestureState) => {
-          const verticalDistance = Math.abs(gestureState.dy);
-          const horizontalDistance = Math.abs(gestureState.dx);
-          return verticalDistance > 4 && verticalDistance > horizontalDistance;
-        },
-        onPanResponderGrant: () => {
-          sheetTranslateY.stopAnimation((value) => {
-            dragStartOffsetRef.current = typeof value === "number" && Number.isFinite(value) ? value : 0;
-          });
-        },
-        onPanResponderMove: (_event, gestureState) => {
-          const next = Math.max(0, dragStartOffsetRef.current + gestureState.dy);
-          sheetTranslateY.setValue(next);
-        },
-        onPanResponderRelease: (_event, gestureState) => {
-          const draggedDistance = Math.max(0, dragStartOffsetRef.current + gestureState.dy);
-          if (draggedDistance >= DRAG_CLOSE_DISTANCE || gestureState.vy > DRAG_CLOSE_VELOCITY) {
-            closeByDrag();
-            return;
-          }
-          restoreSheetPosition();
-        },
-        onPanResponderTerminate: () => {
-          restoreSheetPosition();
-        },
-      }),
-    [closeByDrag, restoreSheetPosition, sheetTranslateY]
-  );
+  const dragHandleResponder = useMemo(() => {
+    const topGestureHeight = insets.top + 120;
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (event, gestureState) => {
+        const fromTopEdge = event.nativeEvent.pageY <= topGestureHeight;
+        const verticalDistance = Math.abs(gestureState.dy);
+        const horizontalDistance = Math.abs(gestureState.dx);
+        const verticalDismiss = gestureState.dy > 4 && verticalDistance > horizontalDistance;
+        const horizontalDismiss = fromTopEdge && gestureState.dx > 8 && horizontalDistance > verticalDistance;
+        return verticalDismiss || horizontalDismiss;
+      },
+      onPanResponderMove: (_event, gestureState) => {
+        const offset = resolveSheetDragOffset(gestureState.dy, gestureState.dx);
+        sheetTranslateY.setValue(Math.min(offset, DRAG_CLOSE_ANIMATION_TO));
+      },
+      onPanResponderRelease: (_event, gestureState) => {
+        const shouldDismiss = shouldDismissSheetGesture({
+          translationY: gestureState.dy,
+          velocityY: gestureState.vy,
+          translationX: gestureState.dx,
+          velocityX: gestureState.vx,
+        });
+        if (shouldDismiss) {
+          closeByDrag();
+          return;
+        }
+        restoreSheetPosition();
+      },
+      onPanResponderTerminate: () => {
+        restoreSheetPosition();
+      },
+    });
+  }, [closeByDrag, insets.top, restoreSheetPosition, sheetTranslateY]);
 
   const updateLyricsPanelHeight = useCallback(
     (nextHeight: number, markAsUserAdjusted: boolean) => {
@@ -363,6 +399,7 @@ export function MiniPlayer({
 
   useEffect(() => {
     if (!isExpanded) {
+      isDragClosingRef.current = false;
       sheetTranslateY.stopAnimation();
       sheetTranslateY.setValue(0);
       lyricsPanelAdjustedByUserRef.current = false;
@@ -434,10 +471,12 @@ export function MiniPlayer({
             style={[styles.modalBackdrop, { backgroundColor: backdropColor, opacity: backdropOpacity }]}
           />
           <Animated.View
+            testID="mini-player-sheet"
             style={[
               styles.sheet,
               styles.sheetFullscreen,
               { backgroundColor: palette.surfaceStrong, borderColor: palette.border },
+              { paddingTop: Math.max(insets.top - 4, 6) },
               { transform: [{ translateY: sheetTranslateY }] },
               liquidGlassEnabled && [
                 styles.glassSheet,
@@ -446,11 +485,10 @@ export function MiniPlayer({
             ]}
             onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)}
           >
-            <View style={styles.sheetHeader}>
+            <View style={styles.sheetHeader} {...dragHandleResponder.panHandlers}>
               <View
                 testID="mini-player-drag-handle-touch"
                 style={styles.dragHandleTouch}
-                {...dragHandleResponder.panHandlers}
               >
                 <View style={[styles.handle, { backgroundColor: palette.textSecondary }]} />
               </View>
@@ -1059,7 +1097,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    minHeight: 64,
+    minHeight: 76,
     position: "relative",
   },
   source: {
@@ -1153,8 +1191,8 @@ const styles = StyleSheet.create({
   dragHandleTouch: {
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 64,
-    paddingVertical: 14,
+    minHeight: 76,
+    paddingVertical: 18,
     width: "100%",
   },
 });

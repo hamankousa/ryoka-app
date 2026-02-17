@@ -19,6 +19,7 @@ import {
 } from "../../../src/features/score/scoreZoom";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
 
@@ -101,59 +102,65 @@ export default function ScoreScreen() {
 
   if (errorMessage) {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
-        <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+          <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   if (!zoomedUri) {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
-        <Text style={[styles.loading, { color: palette.textSecondary }]}>楽譜を読み込み中...</Text>
-      </View>
+      <SwipeBackContainer backgroundColor={palette.screenBackground}>
+        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+          <Text style={[styles.loading, { color: palette.textSecondary }]}>楽譜を読み込み中...</Text>
+        </View>
+      </SwipeBackContainer>
     );
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.screenBackground }]}>
-      <View style={[styles.zoomBar, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
-        <Pressable
-          testID="score-zoom-out"
-          style={[styles.zoomButton, { borderColor: palette.border }]}
-          onPress={zoomOut}
-          disabled={zoomPercent <= SCORE_ZOOM_MIN}
-        >
-          <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>−</Text>
-        </Pressable>
-        <Pressable
-          testID="score-zoom-reset"
-          style={[styles.zoomButton, { borderColor: palette.border }]}
-          onPress={resetZoom}
-        >
-          <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>{zoomPercent}%</Text>
-        </Pressable>
-        <Pressable
-          testID="score-zoom-in"
-          style={[styles.zoomButton, { borderColor: palette.border }]}
-          onPress={zoomIn}
-          disabled={zoomPercent >= SCORE_ZOOM_MAX}
-        >
-          <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>＋</Text>
-        </Pressable>
+    <SwipeBackContainer backgroundColor={palette.screenBackground}>
+      <View style={[styles.screen, { backgroundColor: palette.screenBackground }]}>
+        <View style={[styles.zoomBar, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
+          <Pressable
+            testID="score-zoom-out"
+            style={[styles.zoomButton, { borderColor: palette.border }]}
+            onPress={zoomOut}
+            disabled={zoomPercent <= SCORE_ZOOM_MIN}
+          >
+            <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>−</Text>
+          </Pressable>
+          <Pressable
+            testID="score-zoom-reset"
+            style={[styles.zoomButton, { borderColor: palette.border }]}
+            onPress={resetZoom}
+          >
+            <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>{zoomPercent}%</Text>
+          </Pressable>
+          <Pressable
+            testID="score-zoom-in"
+            style={[styles.zoomButton, { borderColor: palette.border }]}
+            onPress={zoomIn}
+            disabled={zoomPercent >= SCORE_ZOOM_MAX}
+          >
+            <Text style={[styles.zoomButtonText, { color: palette.textPrimary }]}>＋</Text>
+          </Pressable>
+        </View>
+        {Platform.OS === "web" ? (
+          <ScoreFrameOnWeb html={webViewerHtml ?? ""} />
+        ) : (
+          <WebView
+            source={{ uri: nativeViewerUri ?? zoomedUri }}
+            style={styles.webview}
+            scalesPageToFit
+            setBuiltInZoomControls
+            setDisplayZoomControls
+          />
+        )}
       </View>
-      {Platform.OS === "web" ? (
-        <ScoreFrameOnWeb html={webViewerHtml ?? ""} />
-      ) : (
-        <WebView
-          source={{ uri: nativeViewerUri ?? zoomedUri }}
-          style={styles.webview}
-          scalesPageToFit
-          setBuiltInZoomControls
-          setDisplayZoomControls
-        />
-      )}
-    </View>
+    </SwipeBackContainer>
   );
 }
 

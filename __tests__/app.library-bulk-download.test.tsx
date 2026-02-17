@@ -3,11 +3,6 @@ import { ReactNode } from "react";
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
-  useLocalSearchParams: () => ({ songId: "m45" }),
-  useRouter: () => ({
-    back: jest.fn(),
-    canGoBack: () => true,
-  }),
 }));
 
 jest.mock("../src/features/settings/SettingsContext", () => ({
@@ -56,33 +51,43 @@ jest.mock("../src/features/download/downloadService", () => ({
     getJobBySongId: jest.fn(() => null),
     listOfflineEntries: jest.fn(async () => []),
     listDownloadMetas: jest.fn(async () => []),
+    getSongDownloadMeta: jest.fn(async () => null),
     getOfflineEntry: jest.fn(async () => null),
-    getSongDownloadMeta: jest.fn(async () => ({
-      songId: "m45",
-      jobId: "m45-1",
-      status: "failed",
-      progress: 30,
-      attempts: 1,
-      updatedAt: "2026-02-17T00:00:00Z",
-    })),
     downloadSong: jest.fn(async () => "m45-1"),
     retrySongDownload: jest.fn(async () => "m45-2"),
     cancelSongDownload: jest.fn(),
     deleteSong: jest.fn(async () => {}),
+    downloadSongsBulk: jest.fn(async () => ["m45-1"]),
+    cancelBulkDownloads: jest.fn(() => 1),
+    retryFailedBulkDownloads: jest.fn(async () => ["m45-2"]),
+    getBulkDownloadProgress: jest.fn(() => ({
+      total: 1,
+      queued: 0,
+      downloading: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0,
+      progress: 0,
+    })),
   },
 }));
 
-describe("SongDetailScreen", () => {
-  it("shows retry action for failed download meta", async () => {
-    const SongDetailScreen = require("../app/(tabs)/song/[songId]").default;
+describe("LibraryTabScreen bulk download", () => {
+  it("runs all-song bulk controls", async () => {
+    const LibraryTabScreen = require("../app/(tabs)/library").default;
     const { downloadService } = require("../src/features/download/downloadService");
-    render(<SongDetailScreen />);
+    render(<LibraryTabScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText("都ぞ弥生")).toBeTruthy();
+      expect(screen.getByTestId("library-bulk-download-all")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByText("再試行"));
-    expect(downloadService.retrySongDownload).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByTestId("library-bulk-download-all"));
+    fireEvent.press(screen.getByTestId("library-bulk-cancel-all"));
+    fireEvent.press(screen.getByTestId("library-bulk-retry-failed"));
+
+    expect(downloadService.downloadSongsBulk).toHaveBeenCalledTimes(1);
+    expect(downloadService.cancelBulkDownloads).toHaveBeenCalledTimes(1);
+    expect(downloadService.retryFailedBulkDownloads).toHaveBeenCalledTimes(1);
   });
 });

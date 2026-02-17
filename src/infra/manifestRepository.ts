@@ -73,15 +73,37 @@ export function getManifestBaseUrl() {
     location?: { hostname?: string };
   };
   const hostname = withLocation.location?.hostname?.toLowerCase();
-  if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
-    return PUBLIC_MANIFEST_BASE_URL;
+  if (hostname) {
+    const isLocalWebHost =
+      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    return isLocalWebHost ? LOCAL_MANIFEST_BASE_URL : PUBLIC_MANIFEST_BASE_URL;
   }
 
   if (withProcess.process?.env?.NODE_ENV === "production") {
     return PUBLIC_MANIFEST_BASE_URL;
   }
 
-  return LOCAL_MANIFEST_BASE_URL;
+  return PUBLIC_MANIFEST_BASE_URL;
+}
+
+function normalizeBaseUrl(baseUrl: string) {
+  return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+}
+
+function getManifestBaseUrlCandidates(baseUrl: string) {
+  const primary = normalizeBaseUrl(baseUrl);
+  if (primary === PUBLIC_MANIFEST_BASE_URL) {
+    return [primary];
+  }
+  return [primary, PUBLIC_MANIFEST_BASE_URL];
+}
+
+function isLikelyFetchFailure(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return message.includes("failed to fetch") || message.includes("network request failed");
 }
 
 export function createManifestRepository({
@@ -93,8 +115,7 @@ export function createManifestRepository({
   cache?: ManifestCache;
   fetchImpl?: FetchLike;
 }) {
-  const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const manifestUrl = `${normalizedBaseUrl}${MANIFEST_URL_PATH}`;
+  const baseUrlCandidates = getManifestBaseUrlCandidates(baseUrl);
 
   async function getManifest(): Promise<Manifest> {
     const cached = await cache.get();
@@ -107,38 +128,44 @@ export function createManifestRepository({
       headers["If-Modified-Since"] = cached.lastModified;
     }
 
-    try {
-      const response = await fetchImpl(manifestUrl, { headers });
+    let lastError: unknown = null;
 
-      if (response.status === 304 && cached) {
-        return cached.manifest;
+    for (const candidateBaseUrl of baseUrlCandidates) {
+      const manifestUrl = `${candidateBaseUrl}${MANIFEST_URL_PATH}`;
+
+      try {
+        const response = await fetchImpl(manifestUrl, { headers });
+
+        if (response.status === 304 && cached) {
+          return cached.manifest;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch manifest: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const manifest = parseManifest(payload, candidateBaseUrl);
+
+        await cache.set({
+          manifest,
+          etag: response.headers.get("etag") ?? cached?.etag,
+          lastModified: response.headers.get("last-modified") ?? cached?.lastModified,
+        });
+
+        return manifest;
+      } catch (error) {
+        lastError = error;
       }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch manifest: ${response.status}`);
-      }
-
-      const payload = await response.json();
-      const manifest = parseManifest(payload, normalizedBaseUrl);
-
-      await cache.set({
-        manifest,
-        etag: response.headers.get("etag") ?? cached?.etag,
-        lastModified: response.headers.get("last-modified") ?? cached?.lastModified,
-      });
-
-      return manifest;
-    } catch (error) {
-      if (cached) {
-        return cached.manifest;
-      }
-      const message =
-        error instanceof Error ? error.message.toLowerCase() : "";
-      if (message.includes("failed to fetch")) {
-        throw new Error(WEB_CORS_HELP);
-      }
-      throw error;
     }
+
+    if (cached) {
+      return cached.manifest;
+    }
+    if (isLikelyFetchFailure(lastError)) {
+      throw new Error(WEB_CORS_HELP);
+    }
+    throw lastError instanceof Error ? lastError : new Error("Failed to fetch manifest");
   }
 
   return {

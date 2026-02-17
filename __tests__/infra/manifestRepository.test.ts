@@ -92,6 +92,45 @@ describe("manifestRepository", () => {
       "npx serve . -l 8787 --cors"
     );
   });
+
+  it("falls back to public content host when primary base url is unreachable", async () => {
+    const cache = new MemoryManifestCache();
+    const fetchMock = jest.fn().mockImplementation(async (url: string) => {
+      if (url.startsWith("http://localhost:8787/ryoka-content/")) {
+        throw new TypeError("Network request failed");
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          version: "2026-02-17",
+          songs: [],
+        }),
+      };
+    });
+
+    const repo = createManifestRepository({
+      baseUrl: "http://localhost:8787/ryoka-content/",
+      cache,
+      fetchImpl: fetchMock,
+    });
+
+    const result = await repo.getManifest();
+
+    expect(result.version).toBe("2026-02-17");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8787/ryoka-content/manifest.json",
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://ryoka-content.pages.dev/manifest.json",
+      expect.any(Object)
+    );
+  });
 });
 
 describe("getManifestBaseUrl", () => {
@@ -157,5 +196,14 @@ describe("getManifestBaseUrl", () => {
     setLocationHost("localhost");
 
     expect(getManifestBaseUrl()).toBe("http://localhost:8787/ryoka-content/");
+  });
+
+  it("uses public content host by default on native runtime", () => {
+    Reflect.deleteProperty(process.env, "EXPO_PUBLIC_MANIFEST_BASE_URL");
+    Reflect.deleteProperty(process.env, "MANIFEST_BASE_URL");
+    process.env.NODE_ENV = "test";
+    Reflect.deleteProperty(globalThis, "location");
+
+    expect(getManifestBaseUrl()).toBe("https://ryoka-content.pages.dev/");
   });
 });
