@@ -7,6 +7,7 @@ import {
 } from "./midiTransport";
 import { MIDI_GUIDE_MAX_FPS, shouldAdvanceFrame } from "../../domain/frameSync";
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
+import { prepareWebPlaybackSession } from "./webPlaybackSession";
 
 export type MidiTimbre = "sine" | "triangle" | "square" | "sawtooth" | "piano";
 export const MIN_OCTAVE_SHIFT = -2;
@@ -100,7 +101,16 @@ export class WebMidiEngine {
 
   private ensureContext() {
     if (!this.context) {
-      this.context = new AudioContext();
+      const browserGlobal = globalThis as typeof globalThis & {
+        AudioContext?: new () => AudioContext;
+        webkitAudioContext?: new () => AudioContext;
+      };
+      const AudioContextConstructor =
+        browserGlobal.AudioContext ?? browserGlobal.webkitAudioContext;
+      if (!AudioContextConstructor) {
+        throw new Error("Web Audio API is not supported on this browser");
+      }
+      this.context = new AudioContextConstructor();
     }
     return this.context;
   }
@@ -229,6 +239,7 @@ export class WebMidiEngine {
 
   async play(uri: string) {
     await this.stop();
+    await prepareWebPlaybackSession("web");
     const context = this.ensureContext();
     if (context.state === "suspended") {
       await context.resume();
@@ -293,6 +304,7 @@ export class WebMidiEngine {
     if (!this.context || this.snapshot.isPlaying || !this.schedule) {
       return;
     }
+    await prepareWebPlaybackSession("web");
     if (this.context.state === "suspended") {
       await this.context.resume();
     }

@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { MidiPitchGuideNote } from "../../domain/midiPitchGuide";
 import { isMidiUrl } from "./audioSource";
 import { MidiTimbre, WebMidiEngine } from "./webMidiEngine";
+import { prepareWebPlaybackSession } from "./webPlaybackSession";
 
 type BackendType = "expo" | "web-midi";
 
@@ -121,6 +122,8 @@ class AudioEngine {
   }
 
   async play(uri: string) {
+    await prepareWebPlaybackSession();
+
     if (await this.useWebMidiIfNeeded(uri)) {
       return;
     }
@@ -185,6 +188,8 @@ class AudioEngine {
   }
 
   async resume() {
+    await prepareWebPlaybackSession();
+
     if (this.activeBackend === "web-midi") {
       await this.webMidi.resume();
       return;
