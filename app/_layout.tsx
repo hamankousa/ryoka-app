@@ -1,10 +1,17 @@
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { AppSettingsProvider, useAppSettings } from "../src/features/settings/SettingsContext";
+import { recordRoutePath } from "../src/ui/navigation/routeHistory";
 
 function RootNavigator() {
   const { palette, resolvedTheme } = useAppSettings();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    recordRoutePath(pathname);
+  }, [pathname]);
 
   return (
     <Stack

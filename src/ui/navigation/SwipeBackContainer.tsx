@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { PropsWithChildren, useMemo } from "react";
 import { PanResponder, Platform, StyleSheet, View } from "react-native";
+import { goBackWithFallback } from "./backNavigation";
 
 type Props = PropsWithChildren<{
   enabled?: boolean;
@@ -39,10 +40,11 @@ export function SwipeBackContainer({
           if (!shouldGoBack) {
             return;
           }
-          const canGoBack = typeof router.canGoBack === "function" ? router.canGoBack() : true;
-          if (canGoBack) {
-            router.back();
-          }
+          goBackWithFallback({
+            back: () => router.back(),
+            canGoBack: () => (typeof router.canGoBack === "function" ? router.canGoBack() : true),
+            replace: (href) => router.replace(href),
+          });
         },
       }),
     [enabled, router]
@@ -70,4 +72,3 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 });
-

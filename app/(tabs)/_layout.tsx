@@ -1,5 +1,5 @@
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -7,6 +7,7 @@ import { resolveFloatingTabBarLayout } from "../../src/domain/tabBarLayout";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { IconifyIconName } from "../../src/ui/icons/iconifyXml";
+import { goBackWithFallback } from "../../src/ui/navigation/backNavigation";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
 const TAB_ICON: Record<string, IconifyIconName> = {
@@ -18,6 +19,7 @@ const TAB_ICON: Record<string, IconifyIconName> = {
 const PRIMARY_TABS = new Set(["home", "search", "list", "library"]);
 
 export default function TabLayout() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const floatingLayout = resolveFloatingTabBarLayout(insets.bottom);
   const { palette, settings } = useAppSettings();
@@ -56,26 +58,31 @@ export default function TabLayout() {
         },
         headerLeft: PRIMARY_TABS.has(route.name)
           ? undefined
-          : () =>
-              navigation.canGoBack() ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="戻る"
-                  onPress={() => navigation.goBack()}
-                  style={[
-                    styles.backButton,
-                    {
-                      backgroundColor: palette.surfaceStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.backButtonInner}>
-                    <IconifyIcon name="navBack" size={14} color={palette.textPrimary} />
-                    <Text style={[styles.backButtonText, { color: palette.textPrimary }]}>戻る</Text>
-                  </View>
-                </Pressable>
-              ) : null,
+          : () => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="戻る"
+                onPress={() => {
+                  goBackWithFallback({
+                    back: () => navigation.goBack(),
+                    canGoBack: () => navigation.canGoBack(),
+                    replace: (href) => router.replace(href),
+                  });
+                }}
+                style={[
+                  styles.backButton,
+                  {
+                    backgroundColor: palette.surfaceStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+              >
+                <View style={styles.backButtonInner}>
+                  <IconifyIcon name="navBack" size={14} color={palette.textPrimary} />
+                  <Text style={[styles.backButtonText, { color: palette.textPrimary }]}>戻る</Text>
+                </View>
+              </Pressable>
+            ),
         tabBarActiveTintColor: palette.tabActive,
         tabBarInactiveTintColor: palette.tabInactive,
         tabBarHideOnKeyboard: true,
