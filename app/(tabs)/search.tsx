@@ -551,7 +551,10 @@ export default function SearchTabScreen() {
                           void playSong(song, "vocal");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Vocal</Text>
+                        <View style={styles.playButtonContent}>
+                          <IconifyIcon name="sourceVocal" size={12} color="#FFFFFF" />
+                          <Text style={styles.playButtonText}>Vocal</Text>
+                        </View>
                       </Pressable>
                       <Pressable
                         style={[
@@ -567,7 +570,10 @@ export default function SearchTabScreen() {
                           void playSong(song, "piano");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Piano</Text>
+                        <View style={styles.playButtonContent}>
+                          <IconifyIcon name="sourcePiano" size={12} color="#FFFFFF" />
+                          <Text style={styles.playButtonText}>Piano</Text>
+                        </View>
                       </Pressable>
                     </View>
                     <View style={styles.links}>
@@ -822,6 +828,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "700",
+  },
+  playButtonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
   },
   playButtonVocal: {
     backgroundColor: "#059669",

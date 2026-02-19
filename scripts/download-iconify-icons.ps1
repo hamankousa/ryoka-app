@@ -22,6 +22,15 @@ $iconMap = [ordered]@{
   "cancel" = "cancel-rounded"
   "refresh" = "refresh-rounded"
   "delete" = "delete-outline-rounded"
+  "play" = "play-arrow-rounded"
+  "pause" = "pause-rounded"
+  "skipPrev" = "skip-previous-rounded"
+  "skipNext" = "skip-next-rounded"
+  "shuffle" = "shuffle-rounded"
+  "loop" = "repeat-rounded"
+  "collapse" = "keyboard-arrow-down-rounded"
+  "sourceVocal" = "mic-rounded"
+  "sourcePiano" = "piano"
 }
 
 $downloaded = [ordered]@{}
@@ -32,7 +41,7 @@ foreach ($entry in $iconMap.GetEnumerator()) {
   $url = "https://api.iconify.design/$Collection/$icon.svg?download=1"
   $outputPath = Join-Path $assetDir "$name.svg"
   Invoke-WebRequest -Uri $url -OutFile $outputPath
-  $xml = Get-Content -Raw -Path $outputPath
+  $xml = [System.IO.File]::ReadAllText($outputPath)
   $downloaded[$name] = $xml
   Write-Output "Downloaded: $name <= $Collection/$icon"
 }

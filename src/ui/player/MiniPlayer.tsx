@@ -21,6 +21,7 @@ import { getThemePalette, ThemePalette } from "../../domain/themePalette";
 import { buildStyledLyricsHtml } from "../../features/lyrics/sanitizeLyricsInlineHtml";
 import { MAX_TEMPO_RATE, MIN_TEMPO_RATE, ratioToTempoRate, tempoRateToRatio } from "../../features/player/midiTransport";
 import { MidiTimbre } from "../../features/player/webMidiEngine";
+import { IconifyIcon } from "../icons/IconifyIcon";
 import { MidiPitchGuide } from "./MidiPitchGuide";
 
 type Props = {
@@ -72,13 +73,6 @@ const TIMBRE_OPTIONS: Array<{ value: MidiTimbre; label: string }> = [
   { value: "square", label: "矩形波" },
   { value: "sawtooth", label: "ノコギリ波" },
 ];
-const ICON_COLLAPSE = "⌄";
-const ICON_PREV = "⏮";
-const ICON_PLAY = "▶";
-const ICON_PAUSE = "⏸";
-const ICON_NEXT = "⏭";
-const ICON_LOOP = "↻↺";
-const ICON_SHUFFLE = "⇄";
 const DRAG_CLOSE_DISTANCE = 140;
 const DRAG_CLOSE_VELOCITY = 1.1;
 const SWIPE_CLOSE_DISTANCE = 92;
@@ -218,7 +212,7 @@ export function MiniPlayer({
   const tempoRatio = useMemo(() => tempoRateToRatio(tempoRate), [tempoRate]);
   tempoRatioRef.current = tempoRatio;
   const effectiveLoopMode = loopMode ?? (loopEnabled ? "track" : "off");
-  const loopLabel = effectiveLoopMode === "track" ? `${ICON_LOOP}1` : ICON_LOOP;
+  const showTrackLoopBadge = effectiveLoopMode === "track";
   const isDark = resolvedTheme === "dark";
   const backdropColor = isDark ? "rgba(2,6,23,0.72)" : "rgba(15,23,42,0.36)";
   const optionActiveColor = isDark ? "rgba(34,211,238,0.18)" : "#DBEAFE";
@@ -441,7 +435,7 @@ export function MiniPlayer({
             </View>
           </Pressable>
           <Pressable onPress={onPlayPause} style={[styles.collapsedPlayButton, { backgroundColor: palette.accent }]}>
-            <Text style={styles.collapsedPlayText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
+            <IconifyIcon name={isPlaying ? "pause" : "play"} size={16} color="#FFFFFF" />
           </Pressable>
         </View>
         <Pressable
@@ -493,7 +487,7 @@ export function MiniPlayer({
                 <View style={[styles.handle, { backgroundColor: palette.textSecondary }]} />
               </View>
               <Pressable style={styles.closeButton} onPress={onCollapse} testID="mini-player-collapse-touch">
-                <Text style={[styles.closeText, { color: palette.textPrimary }]}>{ICON_COLLAPSE}</Text>
+                <IconifyIcon name="collapse" size={20} color={palette.textPrimary} />
               </Pressable>
             </View>
             <ScrollView
@@ -623,7 +617,7 @@ export function MiniPlayer({
                     shuffleEnabled && [styles.shuffleButtonActive, { backgroundColor: optionActiveColor, borderColor: palette.accent }],
                   ]}
                 >
-                  <Text style={[styles.secondaryText, { color: palette.textPrimary }]}>{ICON_SHUFFLE}</Text>
+                  <IconifyIcon name="shuffle" size={18} color={palette.textPrimary} />
                 </Pressable>
                 <Pressable
                   testID="mini-player-prev"
@@ -635,7 +629,7 @@ export function MiniPlayer({
                     { marginLeft: CONTROL_CENTER_OFFSETS.prev - CONTROL_WIDTH.secondary / 2 },
                   ]}
                 >
-                  <Text style={[styles.secondaryText, { color: palette.textPrimary }]}>{ICON_PREV}</Text>
+                  <IconifyIcon name="skipPrev" size={18} color={palette.textPrimary} />
                 </Pressable>
                 <Pressable
                   testID="mini-player-play-pause"
@@ -647,7 +641,7 @@ export function MiniPlayer({
                     { marginLeft: CONTROL_CENTER_OFFSETS.play - CONTROL_WIDTH.primary / 2 },
                   ]}
                 >
-                  <Text style={styles.primaryText}>{isPlaying ? ICON_PAUSE : ICON_PLAY}</Text>
+                  <IconifyIcon name={isPlaying ? "pause" : "play"} size={22} color="#FFFFFF" />
                 </Pressable>
                 <Pressable
                   testID="mini-player-next"
@@ -659,7 +653,7 @@ export function MiniPlayer({
                     { marginLeft: CONTROL_CENTER_OFFSETS.next - CONTROL_WIDTH.secondary / 2 },
                   ]}
                 >
-                  <Text style={[styles.secondaryText, { color: palette.textPrimary }]}>{ICON_NEXT}</Text>
+                  <IconifyIcon name="skipNext" size={18} color={palette.textPrimary} />
                 </Pressable>
                 {canLoop && (
                   <Pressable
@@ -679,7 +673,12 @@ export function MiniPlayer({
                       effectiveLoopMode !== "off" && [styles.loopButtonActive, { backgroundColor: optionActiveColor, borderColor: palette.accent }],
                     ]}
                   >
-                    <Text style={[styles.loopText, { color: palette.textPrimary }]}>{loopLabel}</Text>
+                    <View style={styles.loopIconRow}>
+                      <IconifyIcon name="loop" size={18} color={palette.textPrimary} />
+                      {showTrackLoopBadge ? (
+                        <Text style={[styles.loopBadgeText, { color: palette.textPrimary }]}>1</Text>
+                      ) : null}
+                    </View>
                   </Pressable>
                 )}
               </View>
@@ -803,14 +802,9 @@ const styles = StyleSheet.create({
     height: 34,
     width: 34,
   },
-  closeText: {
-    color: "#1E293B",
-    fontWeight: "700",
-    fontSize: 20,
-    lineHeight: 20,
-  },
   closeButton: {
     alignItems: "center",
+    justifyContent: "center",
     minWidth: 28,
     paddingHorizontal: 6,
     paddingVertical: 4,
@@ -830,15 +824,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   collapsedPlayButton: {
+    alignItems: "center",
     backgroundColor: "#2563EB",
     borderRadius: 999,
+    justifyContent: "center",
     paddingHorizontal: 14,
     paddingVertical: 8,
-  },
-  collapsedPlayText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
   },
   collapsedSource: {
     color: "#94A3B8",
@@ -950,11 +941,15 @@ const styles = StyleSheet.create({
   loopButtonActive: {
     backgroundColor: "#DBEAFE",
   },
-  loopText: {
-    color: "#0F172A",
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center",
+  loopIconRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  loopBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    marginLeft: 2,
   },
   lyricsHint: {
     color: "#64748B",
@@ -1029,12 +1024,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
-  primaryText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 18,
-    textAlign: "center",
-  },
   secondaryButton: {
     backgroundColor: "#E2E8F0",
     borderRadius: 10,
@@ -1046,12 +1035,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#DBEAFE",
     borderColor: "#2563EB",
     borderWidth: 1,
-  },
-  secondaryText: {
-    color: "#0F172A",
-    fontWeight: "600",
-    fontSize: 16,
-    textAlign: "center",
   },
   sectionLabel: {
     color: "#334155",

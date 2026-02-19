@@ -225,7 +225,10 @@ export default function ListTabScreen() {
                           void playSong(song, "vocal");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Vocal</Text>
+                        <View style={styles.playButtonContent}>
+                          <IconifyIcon name="sourceVocal" size={11} color="#FFFFFF" />
+                          <Text style={styles.playButtonText}>Vocal</Text>
+                        </View>
                       </Pressable>
                       <Pressable
                         style={[
@@ -241,7 +244,10 @@ export default function ListTabScreen() {
                           void playSong(song, "piano");
                         }}
                       >
-                        <Text style={styles.playButtonText}>Piano</Text>
+                        <View style={styles.playButtonContent}>
+                          <IconifyIcon name="sourcePiano" size={11} color="#FFFFFF" />
+                          <Text style={styles.playButtonText}>Piano</Text>
+                        </View>
                       </Pressable>
                     </View>
                     <View style={styles.links}>
@@ -405,6 +411,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "800",
+  },
+  playButtonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3,
   },
   playButtonVocal: {
     backgroundColor: "#059669",
