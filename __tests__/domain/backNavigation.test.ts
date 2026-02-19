@@ -20,6 +20,25 @@ describe("goBackWithFallback", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("prefers previous recorded route even when navigator can go back", () => {
+    const back = jest.fn();
+    const replace = jest.fn();
+    const dismissTo = jest.fn();
+    recordRoutePath("/search");
+    recordRoutePath("/song/m45");
+
+    goBackWithFallback({
+      back,
+      replace,
+      dismissTo,
+      canGoBack: () => true,
+    });
+
+    expect(back).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
+    expect(dismissTo).toHaveBeenCalledWith("/search");
+  });
+
   it("falls back to previous recorded route when cannot go back", () => {
     const back = jest.fn();
     const replace = jest.fn();

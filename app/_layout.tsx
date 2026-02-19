@@ -1,17 +1,23 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack, useGlobalSearchParams, usePathname } from "expo-router";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { AppSettingsProvider, useAppSettings } from "../src/features/settings/SettingsContext";
-import { recordRoutePath } from "../src/ui/navigation/routeHistory";
+import { buildRoutePath, recordRoutePath } from "../src/ui/navigation/routeHistory";
 
 function RootNavigator() {
   const { palette, resolvedTheme } = useAppSettings();
   const pathname = usePathname();
+  const globalSearchParams = useGlobalSearchParams();
 
   useEffect(() => {
-    recordRoutePath(pathname);
-  }, [pathname]);
+    recordRoutePath(
+      buildRoutePath(
+        pathname,
+        globalSearchParams as Record<string, string | number | boolean | Array<string | number | boolean> | null | undefined>
+      )
+    );
+  }, [globalSearchParams, pathname]);
 
   return (
     <Stack

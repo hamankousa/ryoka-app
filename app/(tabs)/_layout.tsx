@@ -66,6 +66,7 @@ export default function TabLayout() {
                   goBackWithFallback({
                     back: () => navigation.goBack(),
                     canGoBack: () => navigation.canGoBack(),
+                    dismissTo: (href) => router.dismissTo(href),
                     replace: (href) => router.replace(href),
                   });
                 }}

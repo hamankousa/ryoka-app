@@ -1,8 +1,9 @@
-import { getPreviousRoutePath } from "./routeHistory";
+import { consumePreviousRoutePath } from "./routeHistory";
 
 type BackNavigationPort = {
   back: () => void;
   replace: (href: string) => void;
+  dismissTo?: (href: string) => void;
   canGoBack?: () => boolean;
 };
 
@@ -15,16 +16,20 @@ export function goBackWithFallback(
   options: GoBackWithFallbackOptions = {}
 ) {
   const fallbackHref = options.fallbackHref ?? "/home";
-  const canGoBack = port.canGoBack?.() ?? true;
 
-  if (canGoBack) {
-    port.back();
+  const previousPath = consumePreviousRoutePath();
+  if (previousPath) {
+    if (typeof port.dismissTo === "function") {
+      port.dismissTo(previousPath);
+      return;
+    }
+    port.replace(previousPath);
     return;
   }
 
-  const previousPath = getPreviousRoutePath();
-  if (previousPath) {
-    port.replace(previousPath);
+  const canGoBack = port.canGoBack?.() ?? true;
+  if (canGoBack) {
+    port.back();
     return;
   }
 

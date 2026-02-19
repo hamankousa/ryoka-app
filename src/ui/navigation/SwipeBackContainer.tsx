@@ -43,6 +43,7 @@ export function SwipeBackContainer({
           goBackWithFallback({
             back: () => router.back(),
             canGoBack: () => (typeof router.canGoBack === "function" ? router.canGoBack() : true),
+            dismissTo: (href) => router.dismissTo(href),
             replace: (href) => router.replace(href),
           });
         },
