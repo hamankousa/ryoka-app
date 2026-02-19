@@ -19,6 +19,7 @@ import {
 } from "../../../src/features/score/scoreZoom";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { LoadingPulse } from "../../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
@@ -116,7 +117,12 @@ export default function ScoreScreen() {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
         <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
-          <Text style={[styles.loading, { color: palette.textSecondary }]}>楽譜を読み込み中...</Text>
+          <LoadingPulse
+            label="楽譜を読み込み中..."
+            accentColor={palette.accent}
+            textColor={palette.textPrimary}
+            hintColor={palette.textSecondary}
+          />
         </Animated.View>
       </SwipeBackContainer>
     );
@@ -178,10 +184,6 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#B91C1C",
-    fontSize: 14,
-  },
-  loading: {
-    color: "#475569",
     fontSize: 14,
   },
   zoomBar: {

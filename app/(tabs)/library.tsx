@@ -1,7 +1,6 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Platform,
   Pressable,
@@ -19,6 +18,7 @@ import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
+import { LoadingPulse } from "../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../src/ui/motion/useScreenEntranceMotion";
 
 const manifestRepository = createManifestRepository({});
@@ -173,7 +173,14 @@ export default function LibraryTabScreen() {
         </View>
       )}
 
-      {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
+      {isLoading && (
+        <LoadingPulse
+          label="ライブラリを読み込み中..."
+          accentColor={palette.accent}
+          textColor={palette.textPrimary}
+          hintColor={palette.textSecondary}
+        />
+      )}
       {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
       {!isLoading && !errorMessage && (
         <Text style={[styles.meta, { color: palette.textSecondary }]}>

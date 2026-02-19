@@ -1,7 +1,6 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   LayoutAnimation,
@@ -46,6 +45,7 @@ import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
+import { LoadingPulse } from "../../src/ui/loading/LoadingPulse";
 
 const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
@@ -453,7 +453,14 @@ export default function SearchTabScreen() {
       </View>
       </Animated.View>
 
-      {isLoading && <ActivityIndicator size="large" color={palette.accent} />}
+      {isLoading && (
+        <LoadingPulse
+          label="検索データを読み込み中..."
+          accentColor={palette.accent}
+          textColor={palette.textPrimary}
+          hintColor={palette.textSecondary}
+        />
+      )}
       {errorMessage && <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>}
       {playbackError && <Text style={[styles.error, { color: palette.danger }]}>再生エラー: {playbackError}</Text>}
       {!isLoading && !errorMessage && (

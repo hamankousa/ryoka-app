@@ -10,6 +10,7 @@ import { buildStyledLyricsHtml } from "../../../src/features/lyrics/sanitizeLyri
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { LoadingPulse } from "../../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
@@ -111,7 +112,12 @@ export default function LyricsScreen() {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
         <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
-          <Text style={[styles.loading, { color: palette.textSecondary }]}>歌詞を読み込み中...</Text>
+          <LoadingPulse
+            label="歌詞を読み込み中..."
+            accentColor={palette.accent}
+            textColor={palette.textPrimary}
+            hintColor={palette.textSecondary}
+          />
         </Animated.View>
       </SwipeBackContainer>
     );
@@ -149,10 +155,6 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#B91C1C",
-    fontSize: 14,
-  },
-  loading: {
-    color: "#475569",
     fontSize: 14,
   },
   motionLayer: {

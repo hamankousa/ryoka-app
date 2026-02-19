@@ -29,6 +29,9 @@ describe("manifestRepository", () => {
     const result = await repo.getManifest();
 
     expect(result.version).toBe("2026-02-06");
+    expect(repo.cacheKey).toBe(
+      "manifest:https://example.com/content/|https://ryoka-content.pages.dev/"
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const cached = await cache.get();

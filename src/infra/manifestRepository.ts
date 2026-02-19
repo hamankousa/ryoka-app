@@ -116,6 +116,7 @@ export function createManifestRepository({
   fetchImpl?: FetchLike;
 }) {
   const baseUrlCandidates = getManifestBaseUrlCandidates(baseUrl);
+  const cacheKey = `manifest:${baseUrlCandidates.join("|")}`;
 
   async function getManifest(): Promise<Manifest> {
     const cached = await cache.get();
@@ -169,6 +170,7 @@ export function createManifestRepository({
   }
 
   return {
+    cacheKey,
     getManifest,
   };
 }

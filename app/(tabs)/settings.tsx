@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Switch, Text, View
 
 import { APP_THEME_MODES, MIDI_GUIDE_LOOKAHEAD_OPTIONS } from "../../src/domain/appSettings";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { LoadingPulse } from "../../src/ui/loading/LoadingPulse";
 import { SwipeBackContainer } from "../../src/ui/navigation/SwipeBackContainer";
 
 const THEME_MODE_LABEL: Record<(typeof APP_THEME_MODES)[number], string> = {
@@ -93,7 +94,12 @@ export default function SettingsScreen() {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
         <View style={[styles.container, dynamicStyles.container, styles.centered]}>
-          <Text style={[styles.loading, dynamicStyles.hint]}>設定を読み込み中...</Text>
+          <LoadingPulse
+            label="設定を読み込み中..."
+            accentColor={palette.accent}
+            textColor={palette.textPrimary}
+            hintColor={palette.textSecondary}
+          />
         </View>
       </SwipeBackContainer>
     );
@@ -254,9 +260,6 @@ const styles = StyleSheet.create({
   footerHint: {
     fontSize: 12,
     paddingHorizontal: 2,
-  },
-  loading: {
-    fontSize: 14,
   },
   pageDescription: {
     fontSize: 13,

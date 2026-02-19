@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
 import { downloadService, SongDownloadMeta } from "../../../src/features/download/downloadService";
@@ -10,6 +10,7 @@ import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
 import { IconifyIcon } from "../../../src/ui/icons/IconifyIcon";
+import { LoadingPulse } from "../../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
@@ -113,7 +114,12 @@ export default function SongDetailScreen() {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
         <Animated.View style={[styles.center, { backgroundColor: palette.screenBackground }, entranceStyle]}>
-          <ActivityIndicator size="large" color={palette.accent} />
+          <LoadingPulse
+            label="曲情報を読み込み中..."
+            accentColor={palette.accent}
+            textColor={palette.textPrimary}
+            hintColor={palette.textSecondary}
+          />
         </Animated.View>
       </SwipeBackContainer>
     );
