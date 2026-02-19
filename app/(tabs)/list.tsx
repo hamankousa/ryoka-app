@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import { SongManifestItem } from "../../src/domain/manifest";
 import { downloadService, SongDownloadMeta } from "../../src/features/download/downloadService";
@@ -13,10 +14,13 @@ import { loadSongs } from "../../src/features/songs/loadSongs";
 import { ERA_ORDER, getEraKey, getEraLabel } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
+import { useScreenEntranceMotion } from "../../src/ui/motion/useScreenEntranceMotion";
 
 const manifestRepository = createManifestRepository({});
 export default function ListTabScreen() {
   const { palette } = useAppSettings();
+  const entranceStyle = useScreenEntranceMotion();
   const [songs, setSongs] = useState<SongManifestItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -116,7 +120,8 @@ export default function ListTabScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
+    <Animated.View style={[styles.container, { backgroundColor: palette.screenBackground }, entranceStyle]}>
+      <ScreenAtmosphere palette={palette} />
       <Text style={[styles.heading, { color: palette.textPrimary }]}>全曲一覧</Text>
       <Text style={[styles.meta, { color: palette.textSecondary }]}>{songs.length}曲</Text>
       {Platform.OS !== "web" && songs.length > 0 && (
@@ -129,7 +134,10 @@ export default function ListTabScreen() {
                 void downloadService.downloadSongsBulk(songs);
               }}
             >
-              <Text style={styles.bulkPrimaryButtonText}>表示中を一括DL</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="download" size={12} color="#FFFFFF" />
+                <Text style={styles.bulkPrimaryButtonText}>表示中を一括DL</Text>
+              </View>
             </Pressable>
             <Pressable
               testID="list-bulk-cancel"
@@ -138,7 +146,10 @@ export default function ListTabScreen() {
                 downloadService.cancelBulkDownloads(listSongIds);
               }}
             >
-              <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="cancel" size={12} color="#1E293B" />
+                <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+              </View>
             </Pressable>
             <Pressable
               testID="list-bulk-retry"
@@ -147,7 +158,10 @@ export default function ListTabScreen() {
                 void downloadService.retryFailedBulkDownloads(songs);
               }}
             >
-              <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="refresh" size={12} color="#1E293B" />
+                <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+              </View>
             </Pressable>
           </View>
           <Text style={[styles.bulkMeta, { color: palette.textSecondary }]}>
@@ -251,7 +265,10 @@ export default function ListTabScreen() {
                               void downloadService.downloadSong(song);
                             }}
                           >
-                            <Text style={styles.downloadButtonText}>DL</Text>
+                            <View style={styles.buttonContent}>
+                              <MaterialIcons name="download" size={10} color="#FFFFFF" />
+                              <Text style={styles.downloadButtonText}>DL</Text>
+                            </View>
                           </Pressable>
                         )}
                         {downloadState.canRetry && (
@@ -261,7 +278,10 @@ export default function ListTabScreen() {
                               void downloadService.retrySongDownload(song);
                             }}
                           >
-                            <Text style={styles.retryButtonText}>再試行</Text>
+                            <View style={styles.buttonContent}>
+                              <MaterialIcons name="refresh" size={10} color="#FFFFFF" />
+                              <Text style={styles.retryButtonText}>再試行</Text>
+                            </View>
                           </Pressable>
                         )}
                         {downloadState.canCancel && (
@@ -271,7 +291,10 @@ export default function ListTabScreen() {
                               downloadService.cancelSongDownload(song.id);
                             }}
                           >
-                            <Text style={styles.cancelButtonText}>中止</Text>
+                            <View style={styles.buttonContent}>
+                              <MaterialIcons name="cancel" size={10} color="#FFFFFF" />
+                              <Text style={styles.cancelButtonText}>中止</Text>
+                            </View>
                           </Pressable>
                         )}
                       </View>
@@ -287,7 +310,7 @@ export default function ListTabScreen() {
         </ScrollView>
       )}
 
-    </View>
+    </Animated.View>
   );
 }
 
@@ -296,6 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     flex: 1,
     gap: 8,
+    position: "relative",
     paddingHorizontal: 10,
     paddingTop: 12,
   },
@@ -342,6 +366,11 @@ const styles = StyleSheet.create({
   bulkMeta: {
     color: "#64748B",
     fontSize: 11,
+  },
+  buttonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
   },
   linkLyrics: {
     color: "#0F766E",

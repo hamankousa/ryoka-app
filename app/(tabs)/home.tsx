@@ -5,6 +5,7 @@ import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, Vie
 
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
+import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
 
 const QUICK_ACTIONS = [
   { href: "/search", title: "検索", subtitle: "曲名・作歌作曲・年度から探す", accent: "#0284C7" },
@@ -236,6 +237,7 @@ export default function HomeTabScreen() {
       contentContainerStyle={styles.containerContent}
       showsVerticalScrollIndicator={false}
     >
+      <ScreenAtmosphere palette={palette} />
       <View style={styles.inner}>
         <Animated.View style={[styles.hero, dynamicStyles.hero, heroAnimatedStyle]}>
           <Text style={[styles.eyebrow, dynamicStyles.eyebrow]}>KEITEKI RYOKA</Text>
@@ -350,6 +352,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    position: "relative",
   },
   containerContent: {
     paddingBottom: 22,

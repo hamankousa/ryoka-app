@@ -16,6 +16,7 @@ import {
   UIManager,
   View,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import {
   FILTER_PANEL_ANIMATION_DURATION_MS,
@@ -44,6 +45,7 @@ import {
 } from "../../src/features/songs/yearFilters";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
 
 const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
@@ -306,6 +308,7 @@ export default function SearchTabScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.screenBackground }]}>
+      <ScreenAtmosphere palette={palette} />
       <Animated.View
         style={{
           opacity: introAnim,
@@ -466,7 +469,10 @@ export default function SearchTabScreen() {
                 void downloadService.downloadSongsBulk(filteredSongs);
               }}
             >
-              <Text style={styles.bulkPrimaryButtonText}>表示中を一括DL</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="download" size={12} color="#FFFFFF" />
+                <Text style={styles.bulkPrimaryButtonText}>表示中を一括DL</Text>
+              </View>
             </Pressable>
             <Pressable
               testID="search-bulk-cancel"
@@ -475,7 +481,10 @@ export default function SearchTabScreen() {
                 downloadService.cancelBulkDownloads(filteredSongIds);
               }}
             >
-              <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="cancel" size={12} color="#1E293B" />
+                <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
+              </View>
             </Pressable>
             <Pressable
               testID="search-bulk-retry"
@@ -484,7 +493,10 @@ export default function SearchTabScreen() {
                 void downloadService.retryFailedBulkDownloads(filteredSongs);
               }}
             >
-              <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="refresh" size={12} color="#1E293B" />
+                <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
+              </View>
             </Pressable>
           </View>
           <Text style={[styles.bulkMeta, { color: palette.textSecondary }]}>
@@ -580,7 +592,10 @@ export default function SearchTabScreen() {
                             void downloadService.downloadSong(song);
                           }}
                         >
-                          <Text style={styles.downloadButtonText}>DL</Text>
+                          <View style={styles.buttonContent}>
+                            <MaterialIcons name="download" size={11} color="#FFFFFF" />
+                            <Text style={styles.downloadButtonText}>DL</Text>
+                          </View>
                         </Pressable>
                       )}
                       {downloadState.canRetry && (
@@ -590,7 +605,10 @@ export default function SearchTabScreen() {
                             void downloadService.retrySongDownload(song);
                           }}
                         >
-                          <Text style={styles.retryButtonText}>再試行</Text>
+                          <View style={styles.buttonContent}>
+                            <MaterialIcons name="refresh" size={11} color="#FFFFFF" />
+                            <Text style={styles.retryButtonText}>再試行</Text>
+                          </View>
                         </Pressable>
                       )}
                       {downloadState.canCancel && (
@@ -600,7 +618,10 @@ export default function SearchTabScreen() {
                             downloadService.cancelSongDownload(song.id);
                           }}
                         >
-                          <Text style={styles.cancelButtonText}>中止</Text>
+                          <View style={styles.buttonContent}>
+                            <MaterialIcons name="cancel" size={11} color="#FFFFFF" />
+                            <Text style={styles.cancelButtonText}>中止</Text>
+                          </View>
                         </Pressable>
                       )}
                     </View>
@@ -660,6 +681,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     flex: 1,
     gap: 8,
+    position: "relative",
     paddingHorizontal: 14,
     paddingTop: 14,
   },
@@ -759,6 +781,11 @@ const styles = StyleSheet.create({
   bulkMeta: {
     color: "#64748B",
     fontSize: 11,
+  },
+  buttonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
   },
   input: {
     backgroundColor: "#FFFFFF",

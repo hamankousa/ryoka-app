@@ -115,4 +115,6 @@ npm run test
 - セットアップ/変更ログ: `docs/setup-log.md`
 - 手動起動: `docs/local-run-manual.md`
 - E2Eチェック: `docs/e2e-checklist.md`
+- Figma UI設計手順: `docs/figma-ui-design-guide.md`
+- UI/UXコンセプト: `docs/ui-ux-concept.md`
 - Git運用: `docs/git-rules.md`

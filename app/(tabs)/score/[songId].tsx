@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
@@ -19,6 +19,7 @@ import {
 } from "../../../src/features/score/scoreZoom";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
@@ -29,6 +30,7 @@ function ScoreFrameOnWeb({ html }: { html: string }) {
 
 export default function ScoreScreen() {
   const { palette } = useAppSettings();
+  const entranceStyle = useScreenEntranceMotion();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
   const [offlineScorePath, setOfflineScorePath] = useState<string | undefined>(undefined);
@@ -103,9 +105,9 @@ export default function ScoreScreen() {
   if (errorMessage) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
@@ -113,16 +115,16 @@ export default function ScoreScreen() {
   if (!zoomedUri) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <Text style={[styles.loading, { color: palette.textSecondary }]}>楽譜を読み込み中...</Text>
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
 
   return (
     <SwipeBackContainer backgroundColor={palette.screenBackground}>
-      <View style={[styles.screen, { backgroundColor: palette.screenBackground }]}>
+      <Animated.View style={[styles.screen, { backgroundColor: palette.screenBackground }, entranceStyle]}>
         <View style={[styles.zoomBar, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
           <Pressable
             testID="score-zoom-out"
@@ -159,7 +161,7 @@ export default function ScoreScreen() {
             setDisplayZoomControls
           />
         )}
-      </View>
+      </Animated.View>
     </SwipeBackContainer>
   );
 }

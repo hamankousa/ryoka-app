@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
@@ -10,6 +10,7 @@ import { buildStyledLyricsHtml } from "../../../src/features/lyrics/sanitizeLyri
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
@@ -20,6 +21,7 @@ function LyricsHtmlOnWeb({ html }: { html: string }) {
 
 export default function LyricsScreen() {
   const { palette, resolvedTheme } = useAppSettings();
+  const entranceStyle = useScreenEntranceMotion();
   const params = useLocalSearchParams<{ songId?: string }>();
   const [song, setSong] = useState<SongManifestItem | null>(null);
   const [offlineLyricsPath, setOfflineLyricsPath] = useState<string | undefined>(undefined);
@@ -98,9 +100,9 @@ export default function LyricsScreen() {
   if (errorMessage) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <Text style={[styles.error, { color: palette.danger }]}>{errorMessage}</Text>
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
@@ -108,9 +110,9 @@ export default function LyricsScreen() {
   if (!song || !source) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.centered, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.centered, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <Text style={[styles.loading, { color: palette.textSecondary }]}>歌詞を読み込み中...</Text>
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
@@ -118,18 +120,22 @@ export default function LyricsScreen() {
   if (source.type === "html") {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <ScrollView
-          contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
-        >
-          <LyricsHtmlOnWeb html={styledInlineHtml} />
-        </ScrollView>
+        <Animated.View style={[styles.motionLayer, entranceStyle]}>
+          <ScrollView
+            contentContainerStyle={[styles.webContainer, { backgroundColor: palette.screenBackground }]}
+          >
+            <LyricsHtmlOnWeb html={styledInlineHtml} />
+          </ScrollView>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
 
   return (
     <SwipeBackContainer backgroundColor={palette.screenBackground}>
-      <WebView source={{ uri: source.uri }} style={styles.webview} />
+      <Animated.View style={[styles.motionLayer, entranceStyle]}>
+        <WebView source={{ uri: source.uri }} style={styles.webview} />
+      </Animated.View>
     </SwipeBackContainer>
   );
 }
@@ -148,6 +154,9 @@ const styles = StyleSheet.create({
   loading: {
     color: "#475569",
     fontSize: 14,
+  },
+  motionLayer: {
+    flex: 1,
   },
   webContainer: {
     padding: 16,

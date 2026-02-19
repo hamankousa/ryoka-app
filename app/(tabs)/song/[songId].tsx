@@ -1,6 +1,7 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
 import { downloadService, SongDownloadMeta } from "../../../src/features/download/downloadService";
@@ -9,6 +10,7 @@ import { OfflineEntry } from "../../../src/features/offline/offlineRepo";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
 const manifestRepository = createManifestRepository({});
@@ -35,6 +37,7 @@ function sumEntrySize(entry: OfflineEntry | null) {
 
 export default function SongDetailScreen() {
   const { palette } = useAppSettings();
+  const entranceStyle = useScreenEntranceMotion();
   const params = useLocalSearchParams<{ songId?: string }>();
   const songId = typeof params.songId === "string" ? params.songId : "";
   const [song, setSong] = useState<SongManifestItem | null>(null);
@@ -109,9 +112,9 @@ export default function SongDetailScreen() {
   if (isLoading) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.center, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <ActivityIndicator size="large" color={palette.accent} />
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
@@ -119,16 +122,17 @@ export default function SongDetailScreen() {
   if (errorMessage || !song || !downloadState) {
     return (
       <SwipeBackContainer backgroundColor={palette.screenBackground}>
-        <View style={[styles.center, { backgroundColor: palette.screenBackground }]}>
+        <Animated.View style={[styles.center, { backgroundColor: palette.screenBackground }, entranceStyle]}>
           <Text style={[styles.error, { color: palette.danger }]}>{errorMessage ?? "曲が見つかりません。"}</Text>
-        </View>
+        </Animated.View>
       </SwipeBackContainer>
     );
   }
 
   return (
     <SwipeBackContainer backgroundColor={palette.screenBackground}>
-      <ScrollView style={{ backgroundColor: palette.screenBackground }} contentContainerStyle={styles.container}>
+      <Animated.View style={[styles.motionLayer, entranceStyle]}>
+        <ScrollView style={{ backgroundColor: palette.screenBackground }} contentContainerStyle={styles.container}>
         <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
           <Text style={[styles.title, { color: palette.textPrimary }]}>{song.title}</Text>
           <Text style={[styles.meta, { color: palette.textSecondary }]}>ID: {song.id}</Text>
@@ -153,7 +157,10 @@ export default function SongDetailScreen() {
                   void downloadService.downloadSong(song);
                 }}
               >
-                <Text style={styles.actionText}>ダウンロード</Text>
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="download" size={13} color="#FFFFFF" />
+                  <Text style={styles.actionText}>ダウンロード</Text>
+                </View>
               </Pressable>
             )}
             {downloadState.canRetry && (
@@ -163,7 +170,10 @@ export default function SongDetailScreen() {
                   void downloadService.retrySongDownload(song);
                 }}
               >
-                <Text style={styles.actionText}>再試行</Text>
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="refresh" size={13} color="#FFFFFF" />
+                  <Text style={styles.actionText}>再試行</Text>
+                </View>
               </Pressable>
             )}
             {downloadState.canCancel && (
@@ -173,7 +183,10 @@ export default function SongDetailScreen() {
                   downloadService.cancelSongDownload(song.id);
                 }}
               >
-                <Text style={styles.actionText}>中止</Text>
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="cancel" size={13} color="#FFFFFF" />
+                  <Text style={styles.actionText}>中止</Text>
+                </View>
               </Pressable>
             )}
             {downloadState.canDelete && (
@@ -183,7 +196,10 @@ export default function SongDetailScreen() {
                   void downloadService.deleteSong(song.id);
                 }}
               >
-                <Text style={styles.actionText}>削除</Text>
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="delete-outline" size={13} color="#FFFFFF" />
+                  <Text style={styles.actionText}>削除</Text>
+                </View>
               </Pressable>
             )}
           </View>
@@ -203,7 +219,8 @@ export default function SongDetailScreen() {
             </Link>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </SwipeBackContainer>
   );
 }
@@ -213,6 +230,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
+  },
+  motionLayer: {
+    flex: 1,
   },
   container: {
     gap: 12,
@@ -251,6 +271,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",
+  },
+  buttonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
   },
   downloadButton: {
     backgroundColor: "#0369A1",

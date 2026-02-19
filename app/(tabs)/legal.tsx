@@ -1,14 +1,17 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { useScreenEntranceMotion } from "../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../src/ui/navigation/SwipeBackContainer";
 
 export default function LegalScreen() {
   const { palette } = useAppSettings();
+  const entranceStyle = useScreenEntranceMotion();
 
   return (
     <SwipeBackContainer backgroundColor={palette.screenBackground}>
-      <ScrollView style={[styles.screen, { backgroundColor: palette.screenBackground }]} contentContainerStyle={styles.container}>
+      <Animated.View style={[styles.motionLayer, entranceStyle]}>
+        <ScrollView style={[styles.screen, { backgroundColor: palette.screenBackground }]} contentContainerStyle={styles.container}>
         <View style={[styles.card, { backgroundColor: palette.surfaceBackground, borderColor: palette.border }]}>
           <Text style={[styles.title, { color: palette.textPrimary }]}>法務情報（暫定）</Text>
           <Text style={[styles.description, { color: palette.textSecondary }]}>
@@ -33,13 +36,17 @@ export default function LegalScreen() {
             {"\n"}- 詳細な条件は後日追記します。
           </Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </SwipeBackContainer>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
+    flex: 1,
+  },
+  motionLayer: {
     flex: 1,
   },
   container: {

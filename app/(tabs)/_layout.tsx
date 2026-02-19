@@ -1,6 +1,7 @@
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { resolveFloatingTabBarLayout } from "../../src/domain/tabBarLayout";
@@ -8,11 +9,12 @@ import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
 const TAB_ICON: Record<string, string> = {
-  home: "⌂",
-  search: "⌕",
-  list: "☰",
-  library: "▥",
+  home: "home",
+  search: "search",
+  list: "list",
+  library: "library-music",
 };
+const PRIMARY_TABS = new Set(["home", "search", "list", "library"]);
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -42,16 +44,41 @@ export default function TabLayout() {
           </View>
         </View>
       )}
-      screenOptions={({ route }) => ({
+      screenOptions={({ route, navigation }) => ({
         headerStyle: {
           backgroundColor: palette.surfaceBackground,
         },
+        headerShadowVisible: false,
         headerTintColor: palette.textPrimary,
         headerTitleStyle: {
           fontWeight: "700",
         },
+        headerLeft: PRIMARY_TABS.has(route.name)
+          ? undefined
+          : () =>
+              navigation.canGoBack() ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="戻る"
+                  onPress={() => navigation.goBack()}
+                  style={[
+                    styles.backButton,
+                    {
+                      backgroundColor: palette.surfaceStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.backButtonInner}>
+                    <MaterialIcons name="arrow-back" size={14} color={palette.textPrimary} />
+                    <Text style={[styles.backButtonText, { color: palette.textPrimary }]}>戻る</Text>
+                  </View>
+                </Pressable>
+              ) : null,
         tabBarActiveTintColor: palette.tabActive,
         tabBarInactiveTintColor: palette.tabInactive,
+        tabBarHideOnKeyboard: true,
+        animation: "shift",
         tabBarStyle: {
           backgroundColor: "transparent",
           borderTopWidth: 0,
@@ -71,9 +98,11 @@ export default function TabLayout() {
           marginBottom: 1,
         },
         tabBarIcon: ({ color }) => (
-          <Text allowFontScaling={false} style={{ color, fontSize: 15, fontWeight: "900" }}>
-            {TAB_ICON[route.name] ?? "•"}
-          </Text>
+          <MaterialIcons
+            name={(TAB_ICON[route.name] ?? "radio-button-unchecked") as keyof typeof MaterialIcons.glyphMap}
+            color={color}
+            size={18}
+          />
         ),
       })}
     >
@@ -107,5 +136,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.26,
     shadowRadius: 12,
     elevation: 8,
+  },
+  backButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  backButtonInner: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 2,
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

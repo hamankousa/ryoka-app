@@ -52,6 +52,8 @@ npm run test
 - Cloudflare Pages公開: `docs/deploy-cloudflare-pages.md`
 - ローカル起動手順: `docs/local-run-manual.md`
 - E2Eチェック: `docs/e2e-checklist.md`
+- Figma UI設計手順: `docs/figma-ui-design-guide.md`
+- UI/UXコンセプト: `docs/ui-ux-concept.md`
 - 判断履歴: `docs/decision-log.md`
 - セットアップ履歴: `docs/setup-log.md`
 - Git運用: `docs/git-rules.md`
