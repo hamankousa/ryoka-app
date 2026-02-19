@@ -1,18 +1,19 @@
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
-import { MaterialIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { resolveFloatingTabBarLayout } from "../../src/domain/tabBarLayout";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
+import { IconifyIconName } from "../../src/ui/icons/iconifyXml";
 import { GlobalMiniPlayer } from "../../src/ui/player/GlobalMiniPlayer";
 
-const TAB_ICON: Record<string, string> = {
-  home: "home",
-  search: "search",
-  list: "list",
-  library: "library-music",
+const TAB_ICON: Record<string, IconifyIconName> = {
+  home: "tabHome",
+  search: "tabSearch",
+  list: "tabList",
+  library: "tabLibrary",
 };
 const PRIMARY_TABS = new Set(["home", "search", "list", "library"]);
 
@@ -70,7 +71,7 @@ export default function TabLayout() {
                   ]}
                 >
                   <View style={styles.backButtonInner}>
-                    <MaterialIcons name="arrow-back" size={14} color={palette.textPrimary} />
+                    <IconifyIcon name="navBack" size={14} color={palette.textPrimary} />
                     <Text style={[styles.backButtonText, { color: palette.textPrimary }]}>戻る</Text>
                   </View>
                 </Pressable>
@@ -97,13 +98,7 @@ export default function TabLayout() {
           lineHeight: floatingLayout.labelLineHeight,
           marginBottom: 1,
         },
-        tabBarIcon: ({ color }) => (
-          <MaterialIcons
-            name={(TAB_ICON[route.name] ?? "radio-button-unchecked") as keyof typeof MaterialIcons.glyphMap}
-            color={color}
-            size={18}
-          />
-        ),
+        tabBarIcon: ({ color }) => <IconifyIcon name={TAB_ICON[route.name] ?? "tabHome"} color={color} size={18} />,
       })}
     >
       <Tabs.Screen name="home" options={{ title: "ホーム", headerTitle: "恵迪寮 寮歌プレイヤー" }} />

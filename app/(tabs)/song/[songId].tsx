@@ -1,7 +1,6 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 
 import { SongManifestItem } from "../../../src/domain/manifest";
 import { downloadService, SongDownloadMeta } from "../../../src/features/download/downloadService";
@@ -10,6 +9,7 @@ import { OfflineEntry } from "../../../src/features/offline/offlineRepo";
 import { loadSongs } from "../../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../../src/infra/manifestRepository";
 import { useAppSettings } from "../../../src/features/settings/SettingsContext";
+import { IconifyIcon } from "../../../src/ui/icons/IconifyIcon";
 import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
 
@@ -153,12 +153,12 @@ export default function SongDetailScreen() {
             {downloadState.canDownload && (
               <Pressable
                 style={styles.downloadButton}
-                onPress={() => {
-                  void downloadService.downloadSong(song);
-                }}
-              >
-                <View style={styles.buttonContent}>
-                  <MaterialIcons name="download" size={13} color="#FFFFFF" />
+              onPress={() => {
+                void downloadService.downloadSong(song);
+              }}
+            >
+              <View style={styles.buttonContent}>
+                  <IconifyIcon name="download" size={13} color="#FFFFFF" />
                   <Text style={styles.actionText}>ダウンロード</Text>
                 </View>
               </Pressable>
@@ -166,12 +166,12 @@ export default function SongDetailScreen() {
             {downloadState.canRetry && (
               <Pressable
                 style={styles.retryButton}
-                onPress={() => {
-                  void downloadService.retrySongDownload(song);
-                }}
-              >
-                <View style={styles.buttonContent}>
-                  <MaterialIcons name="refresh" size={13} color="#FFFFFF" />
+              onPress={() => {
+                void downloadService.retrySongDownload(song);
+              }}
+            >
+              <View style={styles.buttonContent}>
+                  <IconifyIcon name="refresh" size={13} color="#FFFFFF" />
                   <Text style={styles.actionText}>再試行</Text>
                 </View>
               </Pressable>
@@ -179,12 +179,12 @@ export default function SongDetailScreen() {
             {downloadState.canCancel && (
               <Pressable
                 style={styles.cancelButton}
-                onPress={() => {
-                  downloadService.cancelSongDownload(song.id);
-                }}
-              >
-                <View style={styles.buttonContent}>
-                  <MaterialIcons name="cancel" size={13} color="#FFFFFF" />
+              onPress={() => {
+                downloadService.cancelSongDownload(song.id);
+              }}
+            >
+              <View style={styles.buttonContent}>
+                  <IconifyIcon name="cancel" size={13} color="#FFFFFF" />
                   <Text style={styles.actionText}>中止</Text>
                 </View>
               </Pressable>
@@ -192,12 +192,12 @@ export default function SongDetailScreen() {
             {downloadState.canDelete && (
               <Pressable
                 style={styles.deleteButton}
-                onPress={() => {
-                  void downloadService.deleteSong(song.id);
-                }}
-              >
-                <View style={styles.buttonContent}>
-                  <MaterialIcons name="delete-outline" size={13} color="#FFFFFF" />
+              onPress={() => {
+                void downloadService.deleteSong(song.id);
+              }}
+            >
+              <View style={styles.buttonContent}>
+                  <IconifyIcon name="delete" size={13} color="#FFFFFF" />
                   <Text style={styles.actionText}>削除</Text>
                 </View>
               </Pressable>

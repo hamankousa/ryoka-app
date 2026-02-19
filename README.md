@@ -44,6 +44,12 @@ npm run start:go:tunnel
 npm run test
 ```
 
+## アイコン更新（Iconify）
+
+```bash
+npm run icons:pull
+```
+
 ## ドキュメント
 
 - 開発手順: `docs/development-guide.md`

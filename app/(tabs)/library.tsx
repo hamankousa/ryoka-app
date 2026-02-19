@@ -1,6 +1,5 @@
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { MaterialIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Animated,
@@ -18,6 +17,7 @@ import { OfflineEntry } from "../../src/features/offline/offlineRepo";
 import { loadSongs } from "../../src/features/songs/loadSongs";
 import { createManifestRepository } from "../../src/infra/manifestRepository";
 import { useAppSettings } from "../../src/features/settings/SettingsContext";
+import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
 import { useScreenEntranceMotion } from "../../src/ui/motion/useScreenEntranceMotion";
 
@@ -191,7 +191,7 @@ export default function LibraryTabScreen() {
               }}
             >
               <View style={styles.buttonContent}>
-                <MaterialIcons name="download" size={13} color="#FFFFFF" />
+                <IconifyIcon name="download" size={13} color="#FFFFFF" />
                 <Text style={styles.bulkPrimaryButtonText}>全曲一括DL</Text>
               </View>
             </Pressable>
@@ -203,7 +203,7 @@ export default function LibraryTabScreen() {
               }}
             >
               <View style={styles.buttonContent}>
-                <MaterialIcons name="cancel" size={13} color="#1E293B" />
+                <IconifyIcon name="cancel" size={13} color="#1E293B" />
                 <Text style={styles.bulkSecondaryButtonText}>全中止</Text>
               </View>
             </Pressable>
@@ -215,7 +215,7 @@ export default function LibraryTabScreen() {
               }}
             >
               <View style={styles.buttonContent}>
-                <MaterialIcons name="refresh" size={13} color="#1E293B" />
+                <IconifyIcon name="refresh" size={13} color="#1E293B" />
                 <Text style={styles.bulkSecondaryButtonText}>失敗再試行</Text>
               </View>
             </Pressable>
@@ -291,7 +291,7 @@ export default function LibraryTabScreen() {
                       }}
                     >
                       <View style={styles.buttonContent}>
-                        <MaterialIcons name="refresh" size={12} color="#0F766E" />
+                        <IconifyIcon name="refresh" size={12} color="#0F766E" />
                         <Text style={styles.retryButtonText}>再試行</Text>
                       </View>
                     </Pressable>
@@ -304,7 +304,7 @@ export default function LibraryTabScreen() {
                       }}
                     >
                       <View style={styles.buttonContent}>
-                        <MaterialIcons name="cancel" size={12} color="#B45309" />
+                        <IconifyIcon name="cancel" size={12} color="#B45309" />
                         <Text style={styles.cancelButtonText}>中止</Text>
                       </View>
                     </Pressable>
@@ -317,7 +317,7 @@ export default function LibraryTabScreen() {
                       }}
                     >
                       <View style={styles.buttonContent}>
-                        <MaterialIcons name="delete-outline" size={12} color="#B91C1C" />
+                        <IconifyIcon name="delete" size={12} color="#B91C1C" />
                         <Text style={styles.deleteButtonText}>削除</Text>
                       </View>
                     </Pressable>

@@ -55,3 +55,15 @@ jest.mock("react-native-reanimated", () => {
     },
   };
 });
+
+jest.mock("react-native-svg", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+
+  const SvgXml = ({ testID }: { testID?: string }) => React.createElement(View, { testID });
+
+  return {
+    __esModule: true,
+    SvgXml,
+  };
+});
