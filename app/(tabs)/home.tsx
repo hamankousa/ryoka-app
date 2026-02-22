@@ -11,6 +11,7 @@ const QUICK_ACTIONS = [
   { href: "/search", title: "検索", subtitle: "曲名・作歌作曲・年度から探す", accent: "#0284C7" },
   { href: "/list", title: "一覧", subtitle: "元号ごとに寮歌をたどる", accent: "#2563EB" },
   { href: "/library", title: "ライブラリ", subtitle: "ダウンロード済みの曲を管理", accent: "#0E7490" },
+  { href: "/playlists", title: "プレイリスト", subtitle: "再生キューを作成・共有", accent: "#0F766E" },
   { href: "/settings", title: "設定", subtitle: "表示・再生・検索挙動をカスタマイズ", accent: "#0EA5E9" },
   { href: "/legal", title: "法務", subtitle: "プライバシーと著作権の案内", accent: "#0891B2" },
 ] as const;

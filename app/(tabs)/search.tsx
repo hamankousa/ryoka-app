@@ -46,6 +46,7 @@ import { useAppSettings } from "../../src/features/settings/SettingsContext";
 import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
 import { LoadingPulse } from "../../src/ui/loading/LoadingPulse";
+import { AddSongToPlaylistButton } from "../../src/ui/playlists/AddSongToPlaylistButton";
 
 const manifestRepository = createManifestRepository({});
 export default function SearchTabScreen() {
@@ -595,6 +596,7 @@ export default function SearchTabScreen() {
                       </Link>
                     </View>
                   </View>
+                  <AddSongToPlaylistButton songId={song.id} compact />
                   {Platform.OS !== "web" && (
                     <View style={styles.downloadRow}>
                       <Text style={[styles.downloadBadge, { color: palette.textSecondary }]}>DL: {downloadState.badge}</Text>

@@ -156,7 +156,27 @@ describe("loadSongs", () => {
     const firstPromise = loadSongs(repoA);
     const secondPromise = loadSongs(repoB);
 
-    resolveManifest?.({
+    const resolver = resolveManifest as
+      | ((value: {
+          version: string;
+          songs: Array<{
+            id: string;
+            title: string;
+            updatedAt: string;
+            audio: {
+              vocalMp3Url: string;
+              pianoMp3Url: string;
+              defaultSource: "vocal" | "piano";
+            };
+            lyrics: { htmlUrl: string };
+            score: { pdfUrl: string };
+          }>;
+        }) => void)
+      | null;
+    if (!resolver) {
+      throw new Error("manifest resolver is not ready");
+    }
+    resolver({
       version: "1",
       songs: [
         {

@@ -115,6 +115,11 @@ export default function TabLayout() {
       <Tabs.Screen name="library" options={{ title: "ライブラリ", headerTitle: "マイライブラリ" }} />
       <Tabs.Screen name="settings" options={{ href: null, title: "設定", headerTitle: "設定" }} />
       <Tabs.Screen name="legal" options={{ href: null, title: "法務", headerTitle: "法務情報" }} />
+      <Tabs.Screen name="playlists" options={{ href: null, title: "プレイリスト", headerTitle: "プレイリスト" }} />
+      <Tabs.Screen
+        name="playlist/[playlistId]"
+        options={{ href: null, title: "プレイリスト詳細", headerTitle: "プレイリスト詳細" }}
+      />
       <Tabs.Screen name="song/[songId]" options={{ href: null, title: "曲詳細", headerTitle: "曲詳細" }} />
       <Tabs.Screen name="lyrics/[songId]" options={{ href: null, title: "歌詞", headerTitle: "歌詞" }} />
       <Tabs.Screen name="score/[songId]" options={{ href: null, title: "楽譜", headerTitle: "楽譜" }} />

@@ -17,6 +17,7 @@ import { IconifyIcon } from "../../src/ui/icons/IconifyIcon";
 import { ScreenAtmosphere } from "../../src/ui/layout/ScreenAtmosphere";
 import { LoadingPulse } from "../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../src/ui/motion/useScreenEntranceMotion";
+import { AddSongToPlaylistButton } from "../../src/ui/playlists/AddSongToPlaylistButton";
 
 const manifestRepository = createManifestRepository({});
 export default function ListTabScreen() {
@@ -269,6 +270,7 @@ export default function ListTabScreen() {
                         詳細
                       </Link>
                     </View>
+                    <AddSongToPlaylistButton songId={song.id} compact />
                     {Platform.OS !== "web" && (
                       <View style={styles.downloadArea}>
                         <Text style={[styles.downloadBadge, { color: palette.textSecondary }]}>DL: {downloadState.badge}</Text>

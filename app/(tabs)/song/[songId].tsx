@@ -13,6 +13,7 @@ import { IconifyIcon } from "../../../src/ui/icons/IconifyIcon";
 import { LoadingPulse } from "../../../src/ui/loading/LoadingPulse";
 import { useScreenEntranceMotion } from "../../../src/ui/motion/useScreenEntranceMotion";
 import { SwipeBackContainer } from "../../../src/ui/navigation/SwipeBackContainer";
+import { AddSongToPlaylistButton } from "../../../src/ui/playlists/AddSongToPlaylistButton";
 
 const manifestRepository = createManifestRepository({});
 
@@ -224,6 +225,9 @@ export default function SongDetailScreen() {
               楽譜を開く
             </Link>
           </View>
+          <View style={styles.playlistAddArea}>
+            <AddSongToPlaylistButton songId={song.id} />
+          </View>
         </View>
         </ScrollView>
       </Animated.View>
@@ -320,5 +324,8 @@ const styles = StyleSheet.create({
     color: "#1D4ED8",
     fontSize: 13,
     fontWeight: "700",
+  },
+  playlistAddArea: {
+    marginTop: 8,
   },
 });
